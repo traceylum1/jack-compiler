@@ -5,6 +5,7 @@ JackTokenizer class
     - Ignores all white space and comments
 """
 
+import re
 
 class JackTokenizer:
     """
@@ -22,20 +23,37 @@ class JackTokenizer:
         # Remove empty lines and comment lines
         self.lines = [line for line in self.lines if (line != '' or line[0:3] != '\**' or line[0] != '*' or line[0:2] != '*/')]
 
+        self.prevToken = None
         self.currToken = None
         self.currIdx = 0
 
         self.currLine = self.lines[self.currIdx]
         self.currLineIdx = 0
 
-
-        self.tokenTypes = [
-            'KEYWORD', 
-            'SYMBOL', 
-            'IDENTIFIER',
-            'INT_CONST',
-            'STRING_CONST',
-            ]
+        
+        self.keywords = [
+            'class',
+            'constructor',
+            'function',
+            'method',
+            'field',
+            'static',
+            'var',
+            'int',
+            'char',
+            'boolean',
+            'void',
+            'true',
+            'false',
+            'null',
+            'this',
+            'let',
+            'do',
+            'if',
+            'else',
+            'while',
+            'return'
+        ]
 
         self.symbols = [
             '(',    # symbols
@@ -59,6 +77,9 @@ class JackTokenizer:
             '~',     # unary operator
         ]
 
+        self.intConstRange = [0, 32767]
+        # String constant is a sequence of unicode characters not including double quote or newline
+        # identifier is a sequence of letters, digits, and underscores, not starting with a digit
 
 
     """
@@ -74,30 +95,54 @@ class JackTokenizer:
         - Initially no token
     """
     def advance(self):
-        # If curr char is symbol, set as curr token and increment idx
+        self.prevToken = self.currToken
+
+        # If curr char is symbol (single char), set as curr token and increment idx
         if self.currLine[self.currLineIdx] in self.symbols:
             self.currToken = self.currLine[self.currLineIdx]
-            self.currLineIdx += 1
-            return
 
-        line = self.currLine
-        lIdx = rIdx = self.currLineIdx
+        else:
+            # Loop with two pointers until full token parsed
+            line = self.currLine
+            lIdx = rIdx = self.currLineIdx
 
-        while line[lIdx] != ' ' and line[lIdx] not in self.symbols:
-            lIdx += 1
-        
-        self.currToken = line[lIdx:rIdx]
+            # Iterate through full token until space or symbol reached
+            while line[rIdx] != ' ' and line[rIdx] not in self.symbols:
+                rIdx += 1
 
-        while line[lIdx] == ' ':
-            lIdx += 1
+            self.currToken = line[lIdx:rIdx]
+            
+        # Skip white spaces
+        while line[rIdx] == ' ':
+            rIdx += 1
 
-        self.currLineIdx = lIdx
+        # Update current line index
+        self.currLineIdx = rIdx
 
     """
     tokenType: Returns the type of the current token, as a constant
     """
     def tokenType(self):
-        pass
+        currToken = self.currToken
+        prevToken = self.prevToken
+
+        regex = re.compile('^[A-Za-z0-9_]+$')
+        
+        if currToken in self.keywords:
+            return 'KEYWORD'
+        elif currToken in self.symbols:
+            return 'SYMBOL'
+        # Do we need to ensure digit is within the appropriate range?
+        # Only int const if it is after assignment op or an array index
+        elif prevToken == '=' or prevToken == '[' and currToken.isdigit():
+            return 'INT_CONST'
+        
+        # How to differeniate between identifier and str const, besides excluding starting with digit?
+        # Do we need to know the prev token? ie, whether prev is '=' or keyword
+        elif regex.match(currToken) and not currToken[0].isdigit() and prevToken in self.keywords:
+            return 'IDENTIFIER'
+        else:
+            return 'STRING_CONST'
 
 
     """
@@ -105,7 +150,7 @@ class JackTokenizer:
         - Only called if tokenType is KEYWORD
     """
     def keyWord(self):
-        pass
+        return self.currToken
 
 
     """
@@ -113,7 +158,7 @@ class JackTokenizer:
         - Only called if tokenType is SYMBOL
     """
     def symbol(self):
-        pass
+        return self.currToken
 
 
     """
@@ -121,7 +166,7 @@ class JackTokenizer:
         - Only called if tokenType is IDENTIFIER
     """
     def identifier(self):
-        pass
+        return self.currToken
 
 
     """
@@ -129,7 +174,7 @@ class JackTokenizer:
         - Only called if tokenType is INT_CONST
     """
     def intVal(self):
-        pass
+        return self.currToken
 
 
     """
@@ -137,4 +182,4 @@ class JackTokenizer:
         - Only called if tokenType is STRING_CONST
     """
     def stringVal(self):
-        pass
+        return self.currToken
