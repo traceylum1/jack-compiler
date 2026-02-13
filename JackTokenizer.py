@@ -21,7 +21,9 @@ class JackTokenizer:
             ]
 
         # Remove empty lines and comment lines
-        self.lines = [line for line in self.lines if (line != '' or line[0:3] != '\**' or line[0] != '*' or line[0:2] != '*/')]
+        self.lines = [line for line in self.lines if (line != '' and line[0:3] != '/**' and line[0] != '*' and line[0:2] != '*/')]
+
+        print(self.lines)
 
         self.prevToken = None
         self.currToken = None
@@ -86,39 +88,45 @@ class JackTokenizer:
     hasMoreTokens: Returns a boolean for whether there are more tokens to parse
     """
     def hasMoreTokens(self):
-        return self.currLineIdx < len(self.currLine) or self.currIdx < len(self.lines)
+        return self.currIdx < len(self.lines) or self.currLineIdx < len(self.currLine)
 
 
     """
     advance: Gets the next token from the input and makes it the current token
         - Only called if hasMoreTokens returns true
         - Initially no token
+        - Use two pointers to parse token
     """
     def advance(self):
         self.prevToken = self.currToken
+        start = end = self.currLineIdx
+        line = self.currLine
 
-        # If curr char is symbol (single char), set as curr token and increment idx
-        if self.currLine[self.currLineIdx] in self.symbols:
-            self.currToken = self.currLine[self.currLineIdx]
+        # If curr char is symbol (single char), incremend end by one
+        if line[end] in self.symbols:
+            end += 1
 
+        # Else iterate through full token until space, symbol, or end of line reached
         else:
-            # Loop with two pointers until full token parsed
-            line = self.currLine
-            lIdx = rIdx = self.currLineIdx
+            while end < len(line) and line[end] != ' ' and line[end] not in self.symbols:
+                end += 1
 
-            # Iterate through full token until space or symbol reached
-            while line[rIdx] != ' ' and line[rIdx] not in self.symbols:
-                rIdx += 1
+        # Update current token
+        self.currToken = line[start:end]
 
-            self.currToken = line[lIdx:rIdx]
-            
         # Skip white spaces
-        while line[rIdx] == ' ':
-            rIdx += 1
+        while end < len(line) and line[end] == ' ':
+            end += 1
 
-        # Update current line index
-        self.currLineIdx = rIdx
+        # If finished with current line, move to next one
+        if end == len(line):
+            end = 0
+            self.currIdx += 1
+            self.currLine = self.lines[self.currIdx]
 
+        self.currLineIdx = end
+
+        
     """
     tokenType: Returns the type of the current token, as a constant
     """
