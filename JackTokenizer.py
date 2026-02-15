@@ -27,9 +27,8 @@ class JackTokenizer:
 
         self.prevToken = None
         self.currToken = None
+        
         self.currIdx = 0
-
-        self.currLine = self.lines[self.currIdx]
         self.currLineIdx = 0
 
         
@@ -88,7 +87,7 @@ class JackTokenizer:
     hasMoreTokens: Returns a boolean for whether there are more tokens to parse
     """
     def hasMoreTokens(self):
-        return self.currIdx < len(self.lines) or self.currLineIdx < len(self.currLine)
+        return self.currIdx < len(self.lines) and self.currLineIdx < len(self.lines[self.currIdx])
 
 
     """
@@ -100,7 +99,7 @@ class JackTokenizer:
     def advance(self):
         self.prevToken = self.currToken
         start = end = self.currLineIdx
-        line = self.currLine
+        line = self.lines[self.currIdx]
 
         # If curr char is symbol (single char), incremend end by one
         if line[end] in self.symbols:
@@ -122,7 +121,6 @@ class JackTokenizer:
         if end == len(line):
             end = 0
             self.currIdx += 1
-            self.currLine = self.lines[self.currIdx]
 
         self.currLineIdx = end
 
@@ -142,7 +140,9 @@ class JackTokenizer:
             return 'SYMBOL'
         # Do we need to ensure digit is within the appropriate range?
         # Only int const if it is after assignment op or an array index
-        elif prevToken == '=' or prevToken == '[' and currToken.isdigit():
+        elif (prevToken == '=' or prevToken == '[' or prevToken == '-') and currToken.isdigit():
+            if int(currToken) > 32767:
+                raise RuntimeError('Error: Integer value is greater than 32767')
             return 'INT_CONST'
         
         # How to differeniate between identifier and str const, besides excluding starting with digit?
