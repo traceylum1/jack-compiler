@@ -104,8 +104,6 @@ class CompilationEngine:
                         self.compileSubroutineDec()
                     case 'method':
                         self.compileSubroutineDec()
-            print(self.tokenizer.currToken)
-
 
         self.xmlLines.append('</tokens>')
         pass
@@ -134,7 +132,6 @@ class CompilationEngine:
             self.tokenizer.advance()
 
             if self.tokenizer.tokenType() == 'IDENTIFIER':
-                print(self.tokenizer.currToken, 'should be identifier')
                 self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
 
             elif self.tokenizer.tokenType() == 'SYMBOL':
@@ -154,61 +151,268 @@ class CompilationEngine:
     compileSubroutineDec: Compiles a complete method, function, or constructor
     """
     def compileSubroutineDec(self):
-        pass
+        self.xmlLines.append('<subroutineDec>')
+
+        # Get function/method/constructor keyword
+        token = self.tokenizer.keyWord()
+        match token:
+            case 'function' | 'method':
+                self.xmlLines.append('<keyword> ' + token + ' </keyword>')
+
+                # Get return type keyword
+                if self.tokenizer.hasMoreTokens():
+                    self.tokenizer.advance()
+
+                    if self.tokenizer.tokenType() == 'KEYWORD':
+                        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+                    else:
+                        raise RuntimeError('Keyword expected')
+                else:
+                    raise RuntimeError('Unexpected end of input')
+
+                # Get subroutine identifier
+                if self.tokenizer.hasMoreTokens():
+                    self.tokenizer.advance()
+                    if self.tokenizer.tokenType() == 'IDENTIFIER':
+                        self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                    else:
+                        raise RuntimeError('Identifier expected')
+                else:
+                    raise RuntimeError('Unexpected end of input')
+        
+            case 'constructor':
+                self.xmlLines.append('<keyword> ' + token + ' </keyword>')
+
+                # Get constructor identifier
+                if self.tokenizer.hasMoreTokens():
+                    self.tokenizer.advance()
+                    if self.tokenizer.tokenType() == 'IDENTIFIER':
+                        self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                    else:
+                        raise RuntimeError('Identifier expected')
+                else:
+                    raise RuntimeError('Unexpected end of input')
+
+                # Get new keyword
+                if self.tokenizer.hasMoreTokens():
+                    self.tokenizer.advance()
+
+                    if self.tokenizer.tokenType() == 'KEYWORD':
+                        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+                    else:
+                        raise RuntimeError('Keyword expected')
+                else:
+                    raise RuntimeError('Unexpected end of input')
+
+
+        # Get opening parenthesis for parameter list
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            else:
+                raise RuntimeError('( expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        # Get parameter list or closing parenthesis
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            elif self.tokenizer.tokenType() == 'KEYWORD':
+                self.compileParameterList()
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        # Get subroutine opening curly bracket
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                self.compileSubroutineBody()
+            else:
+                raise RuntimeError('{ expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+
+        self.xmlLines.append('</subroutineDec>')
 
     """
     compileParameterList: Compiles a (possible empty) parameter list. Does not handle the enclosing "()"
     """
     def compileParameterList(self):
-        pass
+        self.xmlLines.append('<parameterList>')
+
+        # Get parameter type keyword
+        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+
+        # Get parameter identifier
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+            else:
+                raise RuntimeError('Identifier expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+
+        # Get additional parameter identifier(s)
+        while self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+
+            # Get parameter type and identifier together
+            if self.tokenizer.tokenType() == 'KEYWORD':
+                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+                if self.tokenizer.hasMoreTokens():
+                    self.tokenizer.advance()
+                    if self.tokenizer.tokenType() == 'IDENTIFIER':
+                        self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                    else:
+                        raise RuntimeError('Identifier expected')
+                else:
+                    raise RuntimeError('Unexpected end of input')
+            
+            # Get comma or end of parameter list
+            elif self.tokenizer.tokenType() == 'SYMBOL':
+                token = self.tokenizer.symbol()
+                # End class var dec if semicolon reached
+                if token == ')':
+                    break
+                elif token == ',':
+                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+            else:
+                raise RuntimeError('Keyword, identifier or symbol expected')
+
+
+        self.xmlLines.append('</parameterList>')
 
     """
     compileSubroutineBody: Compiles a subroutine's body
     """
     def compileSubroutineBody(self):
-        pass
+        self.xmlLines.append('<subroutineBody>')
 
-    """
-    compileVarDec: Compiles a var declaration
-    """
-    def compileVarDec(self):
-        pass
+        # Get opening curly bracket
+        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+
+        self.compileStatements()
+        
+        # Get closing curly bracket
+        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+        
+        self.xmlLines.append('</subroutineBody>')
 
     """
     compileStatements: Compiles a sequence of statements. Does not handle the enclosing "{}"
     """
     def compileStatements(self):
-        pass
+        self.xmlLines.append('<statements>')
+
+        if self.tokenizer.tokenType() == 'KEYWORD':
+            token = self.tokenizer.keyWord()
+            match token:
+                case 'var':
+                    self.compileVarDec()
+                case 'let':
+                    self.compileLet()
+                case 'if':
+                    self.compileIf()
+                case 'while':
+                    self.compileWhile()
+                case 'do':
+                    self.compileDo()
+                case 'return':
+                    self.compileReturn()
+
+        self.xmlLines.append('</statements>')
+
+
+    """
+    compileVarDec: Compiles a var declaration
+    """
+    def compileVarDec(self):
+        self.xmlLines.append('<varDec>')
+        
+        # Get var keyword
+        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+    
+        # Get primitive type keyword
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+
+            if self.tokenizer.tokenType() == 'KEYWORD':
+                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+            else:
+                raise RuntimeError('Keyword expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        # Get variable identifier(s)
+        while self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+
+            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+
+            elif self.tokenizer.tokenType() == 'SYMBOL':
+                token = self.tokenizer.symbol()
+                # End var dec if semicolon reached
+                if token == ';':
+                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                    break
+                elif token == ',':
+                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+            else:
+                raise RuntimeError('Identifier or symbol expected')
+        
+        self.xmlLines.append('</varDec>')
 
     """
     compileLet: Compiles a let statement
     """
     def compileLet(self):
-        pass
+        self.xmlLines.append('<letStatement>')
+
+
+        self.xmlLines.append('</letStatement>')
 
     """
     compileIf: Compiles an if statement, possibly with a trailing else clause
     """
     def compileIf(self):
-        pass
+        self.xmlLines.append('<ifStatement>')
+
+        
+        self.xmlLines.append('</ifStatement>')
+
 
     """
     compileWhile: Compiles a while statement
     """
     def compileWhile(self):
-        pass
+        self.xmlLines.append('<whileStatement>')
+
+        
+        self.xmlLines.append('</whileStatement>')
 
     """
     compileDo: Compiles a do statement
     """
     def compileDo(self):
-        pass
+        self.xmlLines.append('<doStatement>')
+
+        
+        self.xmlLines.append('</doStatement>')
 
     """
     compileReturn: Compiles a return statement
     """
     def compileReturn(self):
-        pass
+        self.xmlLines.append('<returnStatement>')
+
+        
+        self.xmlLines.append('</returnStatement>')
 
     """
     compileExpression: Compiles an expression
