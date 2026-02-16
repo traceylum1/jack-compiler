@@ -41,8 +41,11 @@ def main():
 
     for filePath in fileArr:
         tokenizer = JackTokenizer(filePath)
-        compEngine = CompilationEngine(tokenizer, filePath)
-        compEngine.compileClass()
+        try:
+            CompilationEngine(tokenizer, filePath)
+        except RuntimeError as error:
+            print(error)
+            return
 
             
 if __name__ == '__main__':

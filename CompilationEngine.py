@@ -20,27 +20,30 @@ class CompilationEngine:
             print('File empty. Nothing to compile')
             return
         
-        while tokenizer.hasMoreTokens():
-            try:
-                tokenizer.advance()
-                tokenType = tokenizer.tokenType()
+        # while tokenizer.hasMoreTokens():
+        #     try:
+        #         tokenizer.advance()
+        #         tokenType = tokenizer.tokenType()
 
-                token = None
-                match tokenType:
-                    case 'SYMBOL':
-                        token = tokenizer.symbol()
-                    case 'IDENTIFIER':
-                        token = tokenizer.identifier()
-                    case 'INT_CONST':
-                        token = tokenizer.intVal()
-                    case 'STRING_CONST':
-                        token = tokenizer.stringVal()
+        #         token = None
+        #         match tokenType:
+        #             case 'KEYWORD':
+        #                 token = tokenizer.keyWord()
+        #             case 'SYMBOL':
+        #                 token = tokenizer.symbol()
+        #             case 'IDENTIFIER':
+        #                 token = tokenizer.identifier()
+        #             case 'INT_CONST':
+        #                 token = tokenizer.intVal()
+        #             case 'STRING_CONST':
+        #                 token = tokenizer.stringVal()
                         
-            except RuntimeError as error:
-                print(error)
-                return
+        #     except RuntimeError as error:
+        #         print(error)
+        #         return
         
-        self.xmlLines.append('</tokens>')
+        self.compileClass()
+
         xmlOutput = '\n'.join(self.xmlLines)
 
         xmlFilePath = filePath.split('.')[0] + '.xml'
@@ -54,8 +57,56 @@ class CompilationEngine:
     """
     def compileClass(self):
         self.xmlLines.append('<tokens>')
+
+        # Get class keyword
         if self.tokenizer.hasMoreTokens():
-            pass
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'KEYWORD':
+                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+            else:
+                raise RuntimeError('Keyword expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+
+        # Get class identifier
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+            else:
+                raise RuntimeError('Identifier expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        # Get opening curly bracket for class
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            else:
+                raise RuntimeError('{ expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        # Contents of class -- static or field declarations, and then subroutines
+        while self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'KEYWORD':
+                token = self.tokenizer.keyWord()
+                match token:
+                    case 'static':
+                        self.compileClassVarDec()
+                    case 'field':
+                        self.compileClassVarDec()
+                    case 'constructor':
+                        self.compileSubroutineDec()
+                    case 'function':
+                        self.compileSubroutineDec()
+                    case 'method':
+                        self.compileSubroutineDec()
+            print(self.tokenizer.currToken)
+
+
         self.xmlLines.append('</tokens>')
         pass
 
@@ -63,8 +114,42 @@ class CompilationEngine:
     compileClassVarDec: Compiles a static variable declaration, or a field declaration
     """
     def compileClassVarDec(self):
-        pass
+        self.xmlLines.append('<classVarDec>')
+        # Get field/static keyword
+        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+        
+        # Get primitive type keyword
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
 
+            if self.tokenizer.tokenType() == 'KEYWORD':
+                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+            else:
+                raise RuntimeError('Keyword expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+
+        # Get variable identifier(s)
+        while self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+
+            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                print(self.tokenizer.currToken, 'should be identifier')
+                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+
+            elif self.tokenizer.tokenType() == 'SYMBOL':
+                token = self.tokenizer.symbol()
+                # End class var dec if semicolon reached
+                if token == ';':
+                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                    break
+                elif token == ',':
+                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+            else:
+                raise RuntimeError('Identifier or symbol expected')
+            
+        self.xmlLines.append('</classVarDec>')
+        
     """
     compileSubroutineDec: Compiles a complete method, function, or constructor
     """

@@ -133,7 +133,6 @@ class JackTokenizer:
         prevToken = self.prevToken
 
         regex = re.compile('^[A-Za-z0-9_]+$')
-        
         if currToken in self.keywords:
             return 'KEYWORD'
         elif currToken in self.symbols:
@@ -147,9 +146,9 @@ class JackTokenizer:
         
         # How to differeniate between identifier and str const, besides excluding starting with digit?
         # Do we need to know the prev token? ie, whether prev is '=' or keyword
-        elif regex.match(currToken) and not currToken[0].isdigit() and prevToken in self.keywords:
+        elif regex.match(currToken) and not currToken[0].isdigit():
             return 'IDENTIFIER'
-        else:
+        elif currToken[0] == "'" or currToken[0] == '"':
             return 'STRING_CONST'
 
 
