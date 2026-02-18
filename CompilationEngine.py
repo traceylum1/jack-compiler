@@ -373,7 +373,43 @@ class CompilationEngine:
     """
     def compileLet(self):
         self.xmlLines.append('<letStatement>')
+        
+        # Get let keyword
+        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
+        # Get variable identifier
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+
+            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                self.xmlLines.append('<identifier> ' + self.tokenizer.symbol() + ' </identifier>')
+            else:
+                raise RuntimeError('Variable identifier expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+    
+        # Get assignment symbol OR square bracket for array index
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                token = self.tokenizer.symbol()
+                match token:
+                    case '=':
+                        self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                    case '[':
+                        self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                        self.compileExpression()
+                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                        
+                # Compile expression after assignment operator
+                self.compileExpression()
+            else:
+                raise RuntimeError('Symbol expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
 
         self.xmlLines.append('</letStatement>')
 
@@ -418,7 +454,20 @@ class CompilationEngine:
     compileExpression: Compiles an expression
     """
     def compileExpression(self):
-        pass
+        self.xmlLines.append('<expression>')
+
+        while self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            tokenType = self.tokenizer.tokenType()
+            match tokenType:
+                case 'IDENTIFIER':
+                    self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                case 'INT_CONST':
+                    self.xmlLines.append('<intVal> ' + self.tokenizer.intVal() + ' </intVal>')
+                case 'STRING_CONST':
+                    self.xmlLines.append('<stringVal> ' + self.tokenizer.stringVal() + ' </stringVal>')
+                
+        self.xmlLines.append('</expression>')
 
     """
     compileTerm: Compiles a term
