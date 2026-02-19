@@ -20,29 +20,9 @@ class CompilationEngine:
             print('File empty. Nothing to compile')
             return
         
-        # while tokenizer.hasMoreTokens():
-        #     try:
-        #         tokenizer.advance()
-        #         tokenType = tokenizer.tokenType()
-
-        #         token = None
-        #         match tokenType:
-        #             case 'KEYWORD':
-        #                 token = tokenizer.keyWord()
-        #             case 'SYMBOL':
-        #                 token = tokenizer.symbol()
-        #             case 'IDENTIFIER':
-        #                 token = tokenizer.identifier()
-        #             case 'INT_CONST':
-        #                 token = tokenizer.intVal()
-        #             case 'STRING_CONST':
-        #                 token = tokenizer.stringVal()
-                        
-        #     except RuntimeError as error:
-        #         print(error)
-        #         return
-        
+        self.xmlLines.append('<tokens>')
         self.compileClass()
+        self.xmlLines.append('</tokens>')
 
         xmlOutput = '\n'.join(self.xmlLines)
 
@@ -56,7 +36,7 @@ class CompilationEngine:
     compileClass: Compiles a complete class (called immediately after constructor)
     """
     def compileClass(self):
-        self.xmlLines.append('<tokens>')
+        self.xmlLines.append('<class>')
 
         # Get class keyword
         if self.tokenizer.hasMoreTokens():
@@ -105,7 +85,7 @@ class CompilationEngine:
                     case 'method':
                         self.compileSubroutineDec()
 
-        self.xmlLines.append('</tokens>')
+        self.xmlLines.append('</class>')
         pass
 
     """
@@ -296,7 +276,20 @@ class CompilationEngine:
         # Get opening curly bracket
         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
 
-        self.compileStatements()
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'KEYWORD':
+                token = self.tokenizer.keyWord()
+                match token:
+                    case 'var':
+                        self.compileVarDec()
+                    case 'let' | 'if' | 'while' | 'do' | 'return':
+                        self.compileStatements()
+            else:
+                raise RuntimeError('Keyword expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
         
         # Get closing curly bracket
         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
@@ -309,21 +302,18 @@ class CompilationEngine:
     def compileStatements(self):
         self.xmlLines.append('<statements>')
 
-        if self.tokenizer.tokenType() == 'KEYWORD':
-            token = self.tokenizer.keyWord()
-            match token:
-                case 'var':
-                    self.compileVarDec()
-                case 'let':
-                    self.compileLet()
-                case 'if':
-                    self.compileIf()
-                case 'while':
-                    self.compileWhile()
-                case 'do':
-                    self.compileDo()
-                case 'return':
-                    self.compileReturn()
+        token = self.tokenizer.keyWord()
+        match token:
+            case 'let':
+                self.compileLet()
+            case 'if':
+                self.compileIf()
+            case 'while':
+                self.compileWhile()
+            case 'do':
+                self.compileDo()
+            case 'return':
+                self.compileReturn()
 
         self.xmlLines.append('</statements>')
 
@@ -401,10 +391,13 @@ class CompilationEngine:
                     case '[':
                         self.xmlLines.append('<symbol> ' + token + ' </symbol>')
                         self.compileExpression()
+                        # Get closing square bracket
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                         
                 # Compile expression after assignment operator
                 self.compileExpression()
+                # Get semicolon
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
             else:
                 raise RuntimeError('Symbol expected')
         else:
@@ -419,7 +412,52 @@ class CompilationEngine:
     def compileIf(self):
         self.xmlLines.append('<ifStatement>')
 
+        # Get if keyword
+        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+
+        # Get opening parenthesis for if conditional
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            else:
+                raise RuntimeError('( expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
         
+        # Get expression for if conditional
+        self.compileExpression()
+        
+        # Get closing parenthesis for if conditional
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            else:
+                raise RuntimeError(') expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+
+        # Get opening curly bracket for if conditional statements
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            else:
+                raise RuntimeError('{ expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        # Get statements for if conditional
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            self.compileStatements()
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        # Get closing curly bracket for if conditional statements
+        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+
         self.xmlLines.append('</ifStatement>')
 
 
@@ -429,6 +467,41 @@ class CompilationEngine:
     def compileWhile(self):
         self.xmlLines.append('<whileStatement>')
 
+        # Get while keyword
+        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+
+        # Get opening parenthesis for while conditional
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            else:
+                raise RuntimeError('( expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        # Get expression for while conditional
+        self.compileExpression()
+        
+        # Get closing parenthesis for while conditional
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            else:
+                raise RuntimeError(') expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        # Get statements for while conditional
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            self.compileStatements()
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        # Get closing curly bracket for while statements
+        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         
         self.xmlLines.append('</whileStatement>')
 
@@ -438,7 +511,45 @@ class CompilationEngine:
     def compileDo(self):
         self.xmlLines.append('<doStatement>')
 
+        # Get do keyword
+        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+
+        # Get subroutine or class identifier
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+            else:
+                raise RuntimeError('Variable identifier expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
         
+        # Get subroutine identifier and/or parameter list
+        while self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                token = self.tokenizer.symbol()
+                self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                match token:
+                    case '.':
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
+                            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                            else:
+                                raise RuntimeError('Identifier expected')
+                    case '(':
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
+                            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                                self.compileParameterList()
+                                # Get closing curly parenthesis for parameter list
+                                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    case ';':
+                        break
+            else:
+                raise RuntimeError('Symbol expected')
+
         self.xmlLines.append('</doStatement>')
 
     """
@@ -451,7 +562,7 @@ class CompilationEngine:
         self.xmlLines.append('</returnStatement>')
 
     """
-    compileExpression: Compiles an expression
+    compileExpression: Compiles an expression -- term (op term)*
     """
     def compileExpression(self):
         self.xmlLines.append('<expression>')
@@ -471,7 +582,7 @@ class CompilationEngine:
 
     """
     compileTerm: Compiles a term
-        - If the current token is an identifier, the routine must distringuish between a variable,
+        - If the current token is an identifier, the routine must distinguish between a variable,
         an array entry, or a subroutine call.
         - A single look-ahead token, which may be one of "[", "(", or "." suffices to distinguish between the possibilities.
         - Any other token is not part of this term and should not be advanced over
