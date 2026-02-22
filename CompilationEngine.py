@@ -339,7 +339,7 @@ class CompilationEngine:
             if self.tokenizer.tokenType() == 'KEYWORD':
                 self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
             else:
-                raise RuntimeError('Keyword expected')
+                raise RuntimeError('Keyword expected in compileVarDec')
         else:
             raise RuntimeError('Unexpected end of input')
         
@@ -359,7 +359,7 @@ class CompilationEngine:
                 elif token == ',':
                     self.xmlLines.append('<symbol> ' + token + ' </symbol>')
             else:
-                raise RuntimeError('Identifier or symbol expected')
+                raise RuntimeError('Identifier or symbol expected in compileVarDec')
         
         self.xmlLines.append('</varDec>')
 
@@ -379,7 +379,7 @@ class CompilationEngine:
             if self.tokenizer.tokenType() == 'IDENTIFIER':
                 self.xmlLines.append('<identifier> ' + self.tokenizer.symbol() + ' </identifier>')
             else:
-                raise RuntimeError('Variable identifier expected')
+                raise RuntimeError('Variable identifier expected in compileLet')
         else:
             raise RuntimeError('Unexpected end of input')
         
@@ -404,7 +404,7 @@ class CompilationEngine:
                 # Get semicolon
                 self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
             else:
-                raise RuntimeError('Symbol expected')
+                raise RuntimeError('Symbol expected in compileLet')
         else:
             raise RuntimeError('Unexpected end of input')
         
@@ -426,7 +426,7 @@ class CompilationEngine:
             if self.tokenizer.tokenType() == 'SYMBOL':
                 self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
             else:
-                raise RuntimeError('( expected')
+                raise RuntimeError('( expected in compileIf')
         else:
             raise RuntimeError('Unexpected end of input')
         
@@ -445,7 +445,7 @@ class CompilationEngine:
             if self.tokenizer.tokenType() == 'SYMBOL':
                 self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
             else:
-                raise RuntimeError('{ expected')
+                raise RuntimeError('{ expected in compileIf')
         else:
             raise RuntimeError('Unexpected end of input')
         
@@ -473,7 +473,7 @@ class CompilationEngine:
             if self.tokenizer.tokenType() == 'SYMBOL':
                 self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
             else:
-                raise RuntimeError('( expected')
+                raise RuntimeError('( expected in compileWhile')
         else:
             raise RuntimeError('Unexpected end of input')
         
@@ -486,7 +486,7 @@ class CompilationEngine:
             if self.tokenizer.tokenType() == 'SYMBOL':
                 self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
             else:
-                raise RuntimeError(') expected')
+                raise RuntimeError(') expected in compileWhile')
         else:
             raise RuntimeError('Unexpected end of input')
         
@@ -513,7 +513,7 @@ class CompilationEngine:
             if self.tokenizer.tokenType() == 'IDENTIFIER':
                 self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
             else:
-                raise RuntimeError('Variable identifier expected')
+                raise RuntimeError('Variable identifier expected  in compileDo')
         else:
             raise RuntimeError('Unexpected end of input')
         
@@ -539,12 +539,9 @@ class CompilationEngine:
                                 # Get closing parenthesis for expression list
                             self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                     case ';':
-                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                        if self.tokenizer.hasMoreTokens():
-                            self.tokenizer.advance()
                         break
             else:
-                raise RuntimeError('Symbol expected')
+                raise RuntimeError('Symbol expected in compileDo')
 
         self.xmlLines.append('</doStatement>')
 
@@ -554,8 +551,19 @@ class CompilationEngine:
     def compileReturn(self):
         self.xmlLines.append('<returnStatement>')
 
-        
-        
+        # Get return keyword
+        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+
+        # Get expression or colon
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ';':
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            else:
+                self.compileExpression()
+        else:
+            raise RuntimeError('Unexpected end of input')
+
         self.xmlLines.append('</returnStatement>')
 
     """
@@ -607,7 +615,9 @@ class CompilationEngine:
                 case 'STRING_CONST':
                     self.xmlLines.append('<stringVal> ' + self.tokenizer.stringVal() + ' </stringVal>')
                 case 'SYMBOL':
-                    break
-
+                    token = self.tokenizer.symbol()
+                    if token == ')':
+                        break
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                 
         self.xmlLines.append('</expressionList>')
