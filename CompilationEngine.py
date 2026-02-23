@@ -481,14 +481,10 @@ class CompilationEngine:
         self.compileExpression()
         
         # Get closing parenthesis for while conditional
-        if self.tokenizer.hasMoreTokens():
-            self.tokenizer.advance()
-            if self.tokenizer.tokenType() == 'SYMBOL':
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-            else:
-                raise RuntimeError(') expected in compileWhile')
+        if self.tokenizer.tokenType() == 'SYMBOL':
+            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         else:
-            raise RuntimeError('Unexpected end of input')
+            raise RuntimeError(') expected in compileWhile')
         
         # Get statements for while conditional
         self.compileStatements()
@@ -561,6 +557,11 @@ class CompilationEngine:
                 self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
             else:
                 self.compileExpression()
+                # Get semicolon
+                if self.tokenizer.tokenType() == 'SYMBOL':
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                else:
+                    raise RuntimeError('; expected in compileReturn')
         else:
             raise RuntimeError('Unexpected end of input')
 
@@ -571,7 +572,7 @@ class CompilationEngine:
     """
     def compileExpression(self):
         self.xmlLines.append('<expression>')
-
+        
         while self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             tokenType = self.tokenizer.tokenType()
@@ -583,8 +584,12 @@ class CompilationEngine:
                 case 'STRING_CONST':
                     self.xmlLines.append('<stringVal> ' + self.tokenizer.stringVal() + ' </stringVal>')
                 case 'SYMBOL':
-                    break
-
+                    # Exit loop if end of expression with comma, closing parenthesis for expression list, or semicolon
+                    token = self.tokenizer.symbol()
+                    if token == ',' or token == ')' or token == ';':
+                        break
+                    # Get operator
+                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
                 
         self.xmlLines.append('</expression>')
 
@@ -594,15 +599,21 @@ class CompilationEngine:
         an array entry, or a subroutine call.
         - A single look-ahead token, which may be one of "[", "(", or "." suffices to distinguish between the possibilities.
         - Any other token is not part of this term and should not be advanced over
+        - Terms: int const, str const, keyword const, varName, varName[expression], subroutine call, (expression), unary op term
     """
     def compileTerm(self):
-        pass
+        self.xmlLines.append('<term>')
+
+        self.xmlLines.append('</term>')
+
 
     """
     compileExpressionList: Compiles a (possibly empty) comma-separated list of expressions
     """
     def compileExpressionList(self):
         self.xmlLines.append('<expressionList>')
+
+        self.compileExpression()
 
         while self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
