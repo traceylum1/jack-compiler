@@ -599,10 +599,52 @@ class CompilationEngine:
         an array entry, or a subroutine call.
         - A single look-ahead token, which may be one of "[", "(", or "." suffices to distinguish between the possibilities.
         - Any other token is not part of this term and should not be advanced over
-        - Terms: int const, str const, keyword const, varName, varName[expression], subroutine call, (expression), unary op term
+        - Terms: int const, str const, keyword const, varName, varName'['expression']', subroutine call, '('expression')', unary op term
     """
     def compileTerm(self):
         self.xmlLines.append('<term>')
+
+        tokenType = self.tokenizer.tokenType()
+        match tokenType:
+            case 'IDENTIFIER':
+                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                currToken = self.tokenizer.identifier()
+
+                if self.tokenizer.hasMoreTokens():
+                    self.tokenizer.advance()
+                    nextTokenType = self.tokenizer.tokenType()
+                    if nextTokenType == 'SYMBOL':
+                        nextToken = self.tokenizer.symbol()
+                        self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
+                        match nextToken:
+                            # Array index
+                            case '[':
+                                self.compileExpression()
+                            # Subroutine arguments
+                            case '(':
+                                self.compileExpressionList()
+                            # Method identifier
+                            # subroutineName'('expressionList')'
+                            # (className | varName)'.'subroutineName'('expressionList')'
+                            case '.':
+                                self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
+                                if self.tokenizer.hasMoreTokens():
+                                    self.tokenizer.advance()
+                                    self.compileTerm()
+                                else:
+                                    raise RuntimeError('Unexpected end of input')
+            case 'INT_CONST':
+                self.xmlLines.append('<intVal> ' + self.tokenizer.intVal() + ' </intVal>')
+            case 'STRING_CONST':
+                self.xmlLines.append('<stringVal> ' + self.tokenizer.stringVal() + ' </stringVal>')
+            # '('expression')'
+            case 'SYMBOL':
+                # Get opening parenthesis
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                self.compileExpression()
+                # Get closing parenthesis
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+
 
         self.xmlLines.append('</term>')
 

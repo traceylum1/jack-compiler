@@ -68,7 +68,7 @@ class JackTokenizer:
             '.',
             ',',
             '+',    # operators
-            '-',
+            '-',    # also unary operator
             '*',
             '/',
             '&',
