@@ -503,6 +503,7 @@ class CompilationEngine:
         # Get do keyword
         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
+        # TODO: subroutine call is done by compileTerm
         # Get subroutine or class identifier
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
@@ -637,14 +638,23 @@ class CompilationEngine:
                 self.xmlLines.append('<intVal> ' + self.tokenizer.intVal() + ' </intVal>')
             case 'STRING_CONST':
                 self.xmlLines.append('<stringVal> ' + self.tokenizer.stringVal() + ' </stringVal>')
-            # '('expression')'
+            # '('expression')' or unary operator
             case 'SYMBOL':
-                # Get opening parenthesis
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                self.compileExpression()
-                # Get closing parenthesis
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-
+                token = self.tokenizer.symbol()
+                self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                match token:
+                    case '(':
+                        self.compileExpression()
+                        # Get closing parenthesis
+                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    case '~':
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
+                            self.compileTerm()
+                    case '-':
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
+                            self.compileTerm()
 
         self.xmlLines.append('</term>')
 

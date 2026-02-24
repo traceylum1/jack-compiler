@@ -188,6 +188,7 @@ class JackTokenizer:
     """
     symbol: Returns the string value of the current token
         - Only called if tokenType is STRING_CONST
+        - Remove quotes
     """
     def stringVal(self):
-        return self.currToken
+        return self.currToken[1:-1]
