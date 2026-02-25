@@ -301,6 +301,7 @@ class CompilationEngine:
     """
     def compileStatements(self):
         self.xmlLines.append('<statements>')
+        print('### calling compileStatements with current token: ', self.tokenizer.currToken)
 
         while self.tokenizer.tokenType() == 'KEYWORD':
             token = self.tokenizer.keyWord()
@@ -367,6 +368,7 @@ class CompilationEngine:
     compileLet: Compiles a let statement
     """
     def compileLet(self):
+        print('### calling compileLet')
         self.xmlLines.append('<letStatement>')
         
         # Get let keyword
@@ -415,6 +417,7 @@ class CompilationEngine:
     compileIf: Compiles an if statement, possibly with a trailing else clause
     """
     def compileIf(self):
+        print('### calling compileIf')
         self.xmlLines.append('<ifStatement>')
 
         # Get if keyword
@@ -450,6 +453,8 @@ class CompilationEngine:
             raise RuntimeError('Unexpected end of input')
         
         # Get statements for if conditional
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
         self.compileStatements()
         
         # Get closing curly bracket for if conditional statements
@@ -462,6 +467,7 @@ class CompilationEngine:
     compileWhile: Compiles a while statement
     """
     def compileWhile(self):
+        print('### calling compileWhile')
         self.xmlLines.append('<whileStatement>')
 
         # Get while keyword
@@ -577,20 +583,16 @@ class CompilationEngine:
         while self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             tokenType = self.tokenizer.tokenType()
-            match tokenType:
-                case 'IDENTIFIER':
-                    self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
-                case 'INT_CONST':
-                    self.xmlLines.append('<intVal> ' + self.tokenizer.intVal() + ' </intVal>')
-                case 'STRING_CONST':
-                    self.xmlLines.append('<stringVal> ' + self.tokenizer.stringVal() + ' </stringVal>')
-                case 'SYMBOL':
-                    # Exit loop if end of expression with comma, closing parenthesis for expression list, or semicolon
-                    token = self.tokenizer.symbol()
-                    if token == ',' or token == ')' or token == ';':
-                        break
-                    # Get operator
-                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+            print('### calling compileExpression with currToken', self.tokenizer.currToken)
+            if tokenType == 'SYMBOL':
+                # Exit loop if end of expression with comma, closing parenthesis for expression list, or semicolon
+                token = self.tokenizer.symbol()
+                if token == ',' or token == ')' or token == ';':
+                    break
+                # Get operator
+                self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+            else:
+                self.compileTerm()
                 
         self.xmlLines.append('</expression>')
 
@@ -606,34 +608,29 @@ class CompilationEngine:
         self.xmlLines.append('<term>')
 
         tokenType = self.tokenizer.tokenType()
+        print('### calling compileTerm with current token', self.tokenizer.currToken)
         match tokenType:
             case 'IDENTIFIER':
                 self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
-                currToken = self.tokenizer.identifier()
-
-                if self.tokenizer.hasMoreTokens():
-                    self.tokenizer.advance()
-                    nextTokenType = self.tokenizer.tokenType()
-                    if nextTokenType == 'SYMBOL':
-                        nextToken = self.tokenizer.symbol()
+                nextToken = self.tokenizer.lookAheadToken()
+                match nextToken:
+                    # Array index
+                    case '[':
+                        self.compileExpression()
+                    # Subroutine arguments
+                    case '(':
+                        self.compileExpressionList()
+                    # Method identifier
+                    # subroutineName'('expressionList')'
+                    # (className | varName)'.'subroutineName'('expressionList')'
+                    case '.':
                         self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
-                        match nextToken:
-                            # Array index
-                            case '[':
-                                self.compileExpression()
-                            # Subroutine arguments
-                            case '(':
-                                self.compileExpressionList()
-                            # Method identifier
-                            # subroutineName'('expressionList')'
-                            # (className | varName)'.'subroutineName'('expressionList')'
-                            case '.':
-                                self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
-                                if self.tokenizer.hasMoreTokens():
-                                    self.tokenizer.advance()
-                                    self.compileTerm()
-                                else:
-                                    raise RuntimeError('Unexpected end of input')
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
+                            self.compileTerm()
+                        else:
+                            raise RuntimeError('Unexpected end of input')
+                        
             case 'INT_CONST':
                 self.xmlLines.append('<intVal> ' + self.tokenizer.intVal() + ' </intVal>')
             case 'STRING_CONST':

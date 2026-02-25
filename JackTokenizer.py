@@ -113,7 +113,7 @@ class JackTokenizer:
 
         # Update current token
         self.currToken = line[start:end]
-
+        print("currToken", self.currToken)
         # Skip white spaces
         while end < len(line) and line[end] == ' ':
             end += 1
@@ -125,6 +125,23 @@ class JackTokenizer:
 
         self.currLineIdx = end
 
+    """
+    lookAheadToken: Gets the next token from the input and returns it
+    """
+    def lookAheadToken(self):
+        start = end = self.currLineIdx
+        line = self.lines[self.currIdx]
+
+        # If curr char is symbol (single char), incremend end by one
+        if line[end] in self.symbols:
+            end += 1
+
+        # Else iterate through full token until space, symbol, or end of line reached
+        else:
+            while end < len(line) and line[end] != ' ' and line[end] not in self.symbols:
+                end += 1
+
+        return line[start:end]
         
     """
     tokenType: Returns the type of the current token, as a constant
