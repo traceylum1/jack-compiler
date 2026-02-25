@@ -509,42 +509,50 @@ class CompilationEngine:
         # Get do keyword
         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
-        # TODO: subroutine call is done by compileTerm
-        # Get subroutine or class identifier
+        # Get subroutine term
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'IDENTIFIER':
-                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                self.compileTerm()
             else:
-                raise RuntimeError('Variable identifier expected  in compileDo')
-        else:
-            raise RuntimeError('Unexpected end of input')
+                raise RuntimeError('Identifier expected in compileDo')
         
-        # Get subroutine identifier and/or parameter list
-        while self.tokenizer.hasMoreTokens():
-            self.tokenizer.advance()
-            if self.tokenizer.tokenType() == 'SYMBOL':
-                token = self.tokenizer.symbol()
-                self.xmlLines.append('<symbol> ' + token + ' </symbol>')
-                match token:
-                    case '.':
-                        if self.tokenizer.hasMoreTokens():
-                            self.tokenizer.advance()
-                            if self.tokenizer.tokenType() == 'IDENTIFIER':
-                                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
-                            else:
-                                raise RuntimeError('Identifier expected')
-                    case '(':
-                        if self.tokenizer.hasMoreTokens():
-                            self.tokenizer.advance()
-                            if self.tokenizer.tokenType() == 'IDENTIFIER':
-                                self.compileExpressionList()
-                                # Get closing parenthesis for expression list
-                            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    case ';':
-                        break
-            else:
-                raise RuntimeError('Symbol expected in compileDo')
+        # TODO: subroutine call is done by compileTerm
+        # Get subroutine or class identifier
+        # if self.tokenizer.hasMoreTokens():
+        #     self.tokenizer.advance()
+        #     if self.tokenizer.tokenType() == 'IDENTIFIER':
+        #         self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+        #     else:
+        #         raise RuntimeError('Variable identifier expected  in compileDo')
+        # else:
+        #     raise RuntimeError('Unexpected end of input')
+        
+        # # Get subroutine identifier and/or parameter list
+        # while self.tokenizer.hasMoreTokens():
+        #     self.tokenizer.advance()
+        #     if self.tokenizer.tokenType() == 'SYMBOL':
+        #         token = self.tokenizer.symbol()
+        #         self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+        #         match token:
+        #             case '.':
+        #                 if self.tokenizer.hasMoreTokens():
+        #                     self.tokenizer.advance()
+        #                     if self.tokenizer.tokenType() == 'IDENTIFIER':
+        #                         self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+        #                     else:
+        #                         raise RuntimeError('Identifier expected')
+        #             case '(':
+        #                 if self.tokenizer.hasMoreTokens():
+        #                     self.tokenizer.advance()
+        #                     if self.tokenizer.tokenType() == 'IDENTIFIER':
+        #                         self.compileExpressionList()
+        #                         # Get closing parenthesis for expression list
+        #                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+        #             case ';':
+        #                 break
+        #     else:
+        #         raise RuntimeError('Symbol expected in compileDo')
 
         self.xmlLines.append('</doStatement>')
 
@@ -613,23 +621,27 @@ class CompilationEngine:
             case 'IDENTIFIER':
                 self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
                 nextToken = self.tokenizer.lookAheadToken()
+                print("look ahead token", nextToken)
                 match nextToken:
                     # Array index
                     case '[':
+                        self.tokenizer.advance()
+                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                         self.compileExpression()
                     # Subroutine arguments
                     case '(':
+                        self.tokenizer.advance()
+                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                         self.compileExpressionList()
                     # Method identifier
                     # subroutineName'('expressionList')'
                     # (className | varName)'.'subroutineName'('expressionList')'
                     case '.':
-                        self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
+                        self.tokenizer.advance()
+                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
-                            self.compileTerm()
-                        else:
-                            raise RuntimeError('Unexpected end of input')
+                        self.compileTerm()
                         
             case 'INT_CONST':
                 self.xmlLines.append('<intVal> ' + self.tokenizer.intVal() + ' </intVal>')
