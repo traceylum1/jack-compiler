@@ -301,7 +301,7 @@ class CompilationEngine:
     """
     def compileStatements(self):
         self.xmlLines.append('<statements>')
-        print('### calling compileStatements with current token: ', self.tokenizer.currToken)
+        print('######### calling compileStatements with current token: ', self.tokenizer.currToken)
 
         while self.tokenizer.tokenType() == 'KEYWORD':
             token = self.tokenizer.keyWord()
@@ -368,7 +368,7 @@ class CompilationEngine:
     compileLet: Compiles a let statement
     """
     def compileLet(self):
-        print('### calling compileLet')
+        print('######### calling compileLet')
         self.xmlLines.append('<letStatement>')
         
         # Get let keyword
@@ -417,7 +417,7 @@ class CompilationEngine:
     compileIf: Compiles an if statement, possibly with a trailing else clause
     """
     def compileIf(self):
-        print('### calling compileIf')
+        print('######### calling compileIf')
         self.xmlLines.append('<ifStatement>')
 
         # Get if keyword
@@ -467,7 +467,7 @@ class CompilationEngine:
     compileWhile: Compiles a while statement
     """
     def compileWhile(self):
-        print('### calling compileWhile')
+        print('######### calling compileWhile')
         self.xmlLines.append('<whileStatement>')
 
         # Get while keyword
@@ -591,7 +591,7 @@ class CompilationEngine:
         while self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             tokenType = self.tokenizer.tokenType()
-            print('### calling compileExpression with currToken', self.tokenizer.currToken)
+            print('######### calling compileExpression with currToken', self.tokenizer.currToken)
             if tokenType == 'SYMBOL':
                 # Exit loop if end of expression with comma, closing parenthesis for expression list, or semicolon
                 token = self.tokenizer.symbol()
@@ -616,7 +616,7 @@ class CompilationEngine:
         self.xmlLines.append('<term>')
 
         tokenType = self.tokenizer.tokenType()
-        print('### calling compileTerm with current token', self.tokenizer.currToken)
+        print('######### calling compileTerm with current token', self.tokenizer.currToken)
         match tokenType:
             case 'IDENTIFIER':
                 self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
@@ -639,10 +639,32 @@ class CompilationEngine:
                     case '.':
                         self.tokenizer.advance()
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+
+                        # Get subroutine name
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
-                        self.compileTerm()
+                            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                            else:
+                                raise RuntimeError('subroutineName expected in compileTerm')
+                        else:
+                            raise RuntimeError('Unexpected end of input')
                         
+                        # Get opening parenthesis of expression list
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
+                            if self.tokenizer.tokenType() == 'SYMBOL':
+                                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                            else:
+                                raise RuntimeError('( expected in compileTerm')
+                        else:
+                            raise RuntimeError('Unexpected end of input')
+                        
+                        self.compileExpressionList()
+
+                        # Get closing parenthesis of expression list
+                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+
             case 'INT_CONST':
                 self.xmlLines.append('<intVal> ' + self.tokenizer.intVal() + ' </intVal>')
             case 'STRING_CONST':
@@ -674,22 +696,25 @@ class CompilationEngine:
     def compileExpressionList(self):
         self.xmlLines.append('<expressionList>')
 
+        print('######### calling compileExpressionList currToken', self.tokenizer.currToken)
         self.compileExpression()
 
-        while self.tokenizer.hasMoreTokens():
-            self.tokenizer.advance()
-            tokenType = self.tokenizer.tokenType()
-            match tokenType:
-                case 'IDENTIFIER':
-                    self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
-                case 'INT_CONST':
-                    self.xmlLines.append('<intVal> ' + self.tokenizer.intVal() + ' </intVal>')
-                case 'STRING_CONST':
-                    self.xmlLines.append('<stringVal> ' + self.tokenizer.stringVal() + ' </stringVal>')
-                case 'SYMBOL':
-                    token = self.tokenizer.symbol()
-                    if token == ')':
-                        break
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+        if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ')':
+            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            if self.tokenizer.hasMoreTokens():
+                self.tokenizer.advance()
+        else: 
+            while self.tokenizer.hasMoreTokens():
+                self.tokenizer.advance()
+                tokenType = self.tokenizer.tokenType()
+                match tokenType:
+                    
+                    case 'SYMBOL':
+                        token = self.tokenizer.symbol()
+                        if token == ')':
+                            break
+                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    case _:
+                        self.compileTerm()
                 
         self.xmlLines.append('</expressionList>')
