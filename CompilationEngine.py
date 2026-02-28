@@ -577,8 +577,17 @@ class CompilationEngine:
                 token = self.tokenizer.symbol()
                 if token == ',' or token == ')' or token == ']' or token == ';':
                     break
-                # Get operator
-                self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                # Get operators
+                elif token == '<':
+                    self.xmlLines.append('<symbol> ' + '&lt;' + ' </symbol>')
+                elif token == '>':
+                    self.xmlLines.append('<symbol> ' + '&gt;' + ' </symbol>')
+                elif token == '"':
+                    self.xmlLines.append('<symbol> ' + '&quot;' + ' </symbol>')
+                elif token == '<':
+                    self.xmlLines.append('<symbol> ' + '&amp;' + ' </symbol>')
+                else:
+                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
             else:
                 self.compileTerm()
                 if self.tokenizer.tokenType() == 'SYMBOL':
