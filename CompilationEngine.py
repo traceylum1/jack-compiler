@@ -20,9 +20,7 @@ class CompilationEngine:
             print('File empty. Nothing to compile')
             return
         
-        self.xmlLines.append('<tokens>')
         self.compileClass()
-        self.xmlLines.append('</tokens>')
 
         xmlOutput = '\n'.join(self.xmlLines)
 
@@ -320,6 +318,7 @@ class CompilationEngine:
                     break
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
+                print('######### calling compileStatements end loop with current token: ', self.tokenizer.currToken)
             
         self.xmlLines.append('</statements>')
 
@@ -517,6 +516,10 @@ class CompilationEngine:
             else:
                 raise RuntimeError('Identifier expected in compileDo')
         
+            if self.tokenizer.tokenType() == 'SYMBOL':
+                token = self.tokenizer.symbol()
+                self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+        
         # TODO: subroutine call is done by compileTerm
         # Get subroutine or class identifier
         # if self.tokenizer.hasMoreTokens():
@@ -632,7 +635,9 @@ class CompilationEngine:
                     case '(':
                         self.tokenizer.advance()
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                        self.compileExpressionList()
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
+                            self.compileExpressionList()
                     # Method identifier
                     # subroutineName'('expressionList')'
                     # (className | varName)'.'subroutineName'('expressionList')'
@@ -664,6 +669,8 @@ class CompilationEngine:
 
                         # Get closing parenthesis of expression list
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
 
             case 'INT_CONST':
                 self.xmlLines.append('<intVal> ' + self.tokenizer.intVal() + ' </intVal>')
@@ -697,24 +704,18 @@ class CompilationEngine:
         self.xmlLines.append('<expressionList>')
 
         print('######### calling compileExpressionList currToken', self.tokenizer.currToken)
-        self.compileExpression()
-
+        
+        # Empty expression list
         if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ')':
-            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-            if self.tokenizer.hasMoreTokens():
-                self.tokenizer.advance()
+            self.xmlLines.append('</expressionList>')
+            return
+        
         else: 
-            while self.tokenizer.hasMoreTokens():
-                self.tokenizer.advance()
-                tokenType = self.tokenizer.tokenType()
-                match tokenType:
-                    
-                    case 'SYMBOL':
-                        token = self.tokenizer.symbol()
-                        if token == ')':
-                            break
-                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    case _:
-                        self.compileTerm()
+            self.compileExpression()
+            while self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ',':
+                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                self.compileExpression()
+                if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ')':
+                    break
                 
         self.xmlLines.append('</expressionList>')
