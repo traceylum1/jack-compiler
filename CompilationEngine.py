@@ -281,6 +281,7 @@ class CompilationEngine:
         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
 
         if self.tokenizer.hasMoreTokens():
+            print("line 284 compile subroutinebody", self.tokenizer.currToken)
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'KEYWORD':
                 token = self.tokenizer.keyWord()
@@ -294,7 +295,17 @@ class CompilationEngine:
         else:
             raise RuntimeError('Unexpected end of input')
         
-        
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'KEYWORD':
+                token = self.tokenizer.keyWord()
+                if token == 'let' or token == 'if' or token == 'while' or token == 'do' or token == 'return':
+                    self.compileStatements()
+            else:
+                raise RuntimeError('Keyword expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
+
         # Get closing curly bracket
         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         
@@ -341,10 +352,11 @@ class CompilationEngine:
         # Get primitive type keyword or class identifier
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
-
+            print("line 344 current token", self.tokenizer.currToken)
+            print("line 345 token type", self.tokenizer.tokenType())
             if self.tokenizer.tokenType() == 'KEYWORD':
                 self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
-            elif self.tokenizer.tokenType == 'IDENTIFIER':
+            elif self.tokenizer.tokenType() == 'IDENTIFIER':
                 self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
         else:
             raise RuntimeError('Unexpected end of input')
