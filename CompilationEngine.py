@@ -83,8 +83,9 @@ class CompilationEngine:
                     case 'method':
                         self.compileSubroutineDec()
 
+        if self.tokenizer.tokenType() == 'SYMBOL':
+            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         self.xmlLines.append('</class>')
-        pass
 
     """
     compileClassVarDec: Compiles a static variable declaration, or a field declaration
@@ -196,11 +197,8 @@ class CompilationEngine:
         # Get parameter list or closing parenthesis
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
-            if self.tokenizer.tokenType() == 'SYMBOL':
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-            elif self.tokenizer.tokenType() == 'KEYWORD':
-                self.compileParameterList()
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            self.compileParameterList()
+            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         else:
             raise RuntimeError('Unexpected end of input')
         
@@ -222,8 +220,16 @@ class CompilationEngine:
     def compileParameterList(self):
         self.xmlLines.append('<parameterList>')
 
+        # Empty parameter list
+        if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ')':
+            self.xmlLines.append('</parameterList>')
+            return
+
         # Get parameter type keyword
-        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+        if self.tokenizer.tokenType() == 'KEYWORD':
+                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+        else:
+            raise RuntimeError('Keyword expected')
 
         # Get parameter identifier
         if self.tokenizer.hasMoreTokens():
