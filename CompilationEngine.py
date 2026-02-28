@@ -579,8 +579,6 @@ class CompilationEngine:
                     break
                 # Get operator
                 self.xmlLines.append('<symbol> ' + token + ' </symbol>')
-            elif tokenType == 'KEYWORD':
-                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
             else:
                 self.compileTerm()
                 if self.tokenizer.tokenType() == 'SYMBOL':
@@ -680,15 +678,18 @@ class CompilationEngine:
 
 
             case 'INT_CONST':
+                self.xmlLines.append('<term>')
                 self.xmlLines.append('<intVal> ' + self.tokenizer.intVal() + ' </intVal>')
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
             case 'STRING_CONST':
+                self.xmlLines.append('<term>')
                 self.xmlLines.append('<stringVal> ' + self.tokenizer.stringVal() + ' </stringVal>')
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
             # '('expression')' or unary operator
             case 'SYMBOL':
+                self.xmlLines.append('<term>')
                 token = self.tokenizer.symbol()
                 self.xmlLines.append('<symbol> ' + token + ' </symbol>')
                 if self.tokenizer.hasMoreTokens():
@@ -702,6 +703,9 @@ class CompilationEngine:
                         self.compileTerm()
                     case '-':
                         self.compileTerm()
+            case 'KEYWORD':
+                self.xmlLines.append('<term>')
+                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
         self.xmlLines.append('</term>')
 
