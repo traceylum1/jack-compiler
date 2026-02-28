@@ -338,14 +338,14 @@ class CompilationEngine:
         # Get var keyword
         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
     
-        # Get primitive type keyword
+        # Get primitive type keyword or class identifier
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
 
             if self.tokenizer.tokenType() == 'KEYWORD':
                 self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
-            else:
-                raise RuntimeError('Keyword expected in compileVarDec')
+            elif self.tokenizer.tokenType == 'IDENTIFIER':
+                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
         else:
             raise RuntimeError('Unexpected end of input')
         
@@ -586,6 +586,11 @@ class CompilationEngine:
                     self.xmlLines.append('<symbol> ' + '&quot;' + ' </symbol>')
                 elif token == '<':
                     self.xmlLines.append('<symbol> ' + '&amp;' + ' </symbol>')
+                # Unary op terms
+                elif token == '-':
+                    self.compileTerm()
+                elif token == '~':
+                    self.compileTerm()
                 else:
                     self.xmlLines.append('<symbol> ' + token + ' </symbol>')
             else:
