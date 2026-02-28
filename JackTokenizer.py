@@ -34,7 +34,6 @@ class JackTokenizer:
         
         self.keywords = [
             'class',
-            'new',
             'constructor',
             'function',
             'method',

@@ -171,14 +171,14 @@ class CompilationEngine:
                 else:
                     raise RuntimeError('Unexpected end of input')
 
-                # Get new keyword
+                # Get new identifier
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
 
-                    if self.tokenizer.tokenType() == 'KEYWORD':
-                        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+                    if self.tokenizer.tokenType() == 'IDENTIFIER':
+                        self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
                     else:
-                        raise RuntimeError('Keyword expected')
+                        raise RuntimeError('Identifier expected')
                 else:
                     raise RuntimeError('Unexpected end of input')
 
