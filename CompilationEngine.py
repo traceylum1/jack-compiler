@@ -93,15 +93,14 @@ class CompilationEngine:
         self.xmlLines.append('<classVarDec>')
         # Get field/static keyword
         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
-        
-        # Get primitive type keyword
+
+        # Get primitive type keyword or class identifier
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
-
             if self.tokenizer.tokenType() == 'KEYWORD':
                 self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
-            else:
-                raise RuntimeError('Keyword expected')
+            elif self.tokenizer.tokenType() == 'IDENTIFIER':
+                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
         else:
             raise RuntimeError('Unexpected end of input')
 
@@ -309,6 +308,7 @@ class CompilationEngine:
                 self.compileLet()
             elif token == 'if':
                 self.compileIf()
+                continue
             elif token == 'while':
                 self.compileWhile()
             elif token == 'do':
@@ -471,6 +471,8 @@ class CompilationEngine:
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             # Get else keyword
+
+            print("line 477", self.tokenizer.currToken)
             if self.tokenizer.tokenType() == 'KEYWORD' and self.tokenizer.keyWord() == 'else':
                 self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
                 
@@ -638,7 +640,7 @@ class CompilationEngine:
             if tokenType == 'SYMBOL':
                 # Exit loop if end of expression with comma, closing parenthesis for expression list, closing square bracket, semicolon, or assignment
                 token = self.tokenizer.symbol()
-                if token == ',' or token == ')' or token == ']' or token == ';' or token == '=':
+                if token == ',' or token == ')' or token == ']' or token == ';':
                     break
                 # Get operators
                 elif token == '<':
