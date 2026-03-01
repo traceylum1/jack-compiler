@@ -394,12 +394,12 @@ class CompilationEngine:
                                 self.tokenizer.advance()
                             self.compileExpression()
                             # Get closing square bracket
-                            # if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ']':
-                            #     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                            #     if self.tokenizer.hasMoreTokens():
-                            #         self.tokenizer.advance()
-                            # else:
-                            #     raise RuntimeError('] expected in compileLet')
+                            if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ']':
+                                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                                if self.tokenizer.hasMoreTokens():
+                                    self.tokenizer.advance()
+                            else:
+                                raise RuntimeError('] expected in compileLet')
                     else:
                         self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
                 else:
@@ -562,11 +562,46 @@ class CompilationEngine:
         # Get do keyword
         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
-        # Get subroutine term
+        # Get subroutine call without using compileTerm
+        # subroutineName'('expressionList')'
+        # (className | varName)'.'subroutineName'('expressionList')'
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
+        # className/varName or subroutineName
         if self.tokenizer.tokenType() == 'IDENTIFIER':
-            self.compileTerm()
+            self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+            if self.tokenizer.hasMoreTokens():
+                self.tokenizer.advance()
+                if self.tokenizer.tokenType() == 'SYMBOL':
+                    token = self.tokenizer.symbol()
+                    if token == '(':
+                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
+                        self.compileExpressionList()
+                        # Get closing parenthesis of expression list
+                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
+                    elif token == '.':
+                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
+                            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                                if self.tokenizer.hasMoreTokens():
+                                    self.tokenizer.advance()
+                                    if self.tokenizer.tokenType() == 'SYMBOL':
+                                        token = self.tokenizer.symbol()
+                                        if token == '(':
+                                            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                                            if self.tokenizer.hasMoreTokens():
+                                                self.tokenizer.advance()
+                                            self.compileExpressionList()
+                                            # Get closing parenthesis of expression list
+                                            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                                            if self.tokenizer.hasMoreTokens():
+                                                self.tokenizer.advance()
         else:
             raise RuntimeError('Identifier expected in compileDo')
         
@@ -647,10 +682,10 @@ class CompilationEngine:
             # Identifier, keyword, integer const, string const
             else:
                 self.compileTerm()
-                if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ']':
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
+                # if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ']':
+                #     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                #     if self.tokenizer.hasMoreTokens():
+                #         self.tokenizer.advance()
 
         self.xmlLines.append('</expression>')
 
@@ -683,6 +718,10 @@ class CompilationEngine:
                                 if self.tokenizer.hasMoreTokens():
                                     self.tokenizer.advance()
                                 self.compileExpression()
+                                print("line 686 expecting ]", self.tokenizer.currToken)
+                                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                                if self.tokenizer.hasMoreTokens():
+                                    self.tokenizer.advance()
                                 # return
                             # Subroutine arguments
                             case '(':
