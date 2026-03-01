@@ -23,8 +23,6 @@ class JackTokenizer:
         # Remove empty lines and comment lines
         self.lines = [line for line in self.lines if (line != '' and line[0:3] != '/**' and line[0] != '*' and line[0:2] != '*/')]
 
-        print(self.lines)
-
         self.prevToken = None
         self.currToken = None
         
