@@ -377,15 +377,41 @@ class CompilationEngine:
         # Get let keyword
         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
-        # Get variable
+        # Get identifier -- varName('['expression']')?
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                currToken = self.tokenizer.identifier()
+                if self.tokenizer.hasMoreTokens():
+                    self.tokenizer.advance()
+                    if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == '[':
+                        nextToken = self.tokenizer.symbol()
+                        print("look ahead token in compileLet", nextToken)
+                        if nextToken == '[':
+                            self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
+                            self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
+                            if self.tokenizer.hasMoreTokens():
+                                self.tokenizer.advance()
+                            self.compileExpression()
+                            # Get closing square bracket
+                            # if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ']':
+                            #     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                            #     if self.tokenizer.hasMoreTokens():
+                            #         self.tokenizer.advance()
+                            # else:
+                            #     raise RuntimeError('] expected in compileLet')
+                    else:
+                        self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
+                else:
+                    raise RuntimeError('Unexpected end of input')
+            else:
+                raise RuntimeError('Identifier expected in compileLet')
+        else:
+            raise RuntimeError('Unexpected end of input')
 
-        print('line 384 expecting length', self.tokenizer.currToken)
-        self.compileTerm()
-        print('line 386 expecting =', self.tokenizer.currToken)
         # Get assignment operator
         if self.tokenizer.tokenType() == 'SYMBOL':
+            print('line 412 curr token expected =', self.tokenizer.currToken)
             self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         else:
             raise RuntimeError('= expected in compileLet')
@@ -398,33 +424,6 @@ class CompilationEngine:
             self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         else:
             raise RuntimeError('Unexpected end of input')
-
-
-        #     if self.tokenizer.tokenType() == 'SYMBOL':
-        #         token = self.tokenizer.symbol()
-        #         match token:
-        #             case '=':
-        #                 self.xmlLines.append('<symbol> ' + token + ' </symbol>')
-        #             case '[':
-        #                 self.xmlLines.append('<symbol> ' + token + ' </symbol>')
-        #                 if self.tokenizer.hasMoreTokens():
-        #                     self.tokenizer.advance()
-        #                 self.compileExpression()
-        #                 # Get closing square bracket
-        #                 print("line 407 curr token should be ]", self.tokenizer.currToken)
-        #                 self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                        
-        #         # Compile expression after assignment operator
-        #         if self.tokenizer.hasMoreTokens():
-        #             self.tokenizer.advance()
-        #         self.compileExpression()
-        #         # Get semicolon
-        #         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-        #     else:
-        #         raise RuntimeError('Symbol expected in compileLet')
-        # else:
-        #     raise RuntimeError('Unexpected end of input')
-        
 
         self.xmlLines.append('</letStatement>')
 
@@ -621,31 +620,38 @@ class CompilationEngine:
                 # Get operators
                 elif token == '<':
                     self.xmlLines.append('<symbol> ' + '&lt;' + ' </symbol>')
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
                 elif token == '>':
                     self.xmlLines.append('<symbol> ' + '&gt;' + ' </symbol>')
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
                 elif token == '"':
                     self.xmlLines.append('<symbol> ' + '&quot;' + ' </symbol>')
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
                 elif token == '<':
                     self.xmlLines.append('<symbol> ' + '&amp;' + ' </symbol>')
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
                 # Unary op terms
                 elif token == '-':
                     self.compileTerm()
                 elif token == '~':
                     self.compileTerm()
+                # Other operators
                 else:
                     self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
+            # Identifier, keyword, integer const, string const
             else:
                 self.compileTerm()
-                if self.tokenizer.tokenType() == 'SYMBOL':
-                    token = self.tokenizer.symbol()
-                    if token == ')' or token == ';' or token == ',' or token == '=':
-                        break
+                if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ']':
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
 
-            if self.tokenizer.hasMoreTokens():
-                self.tokenizer.advance()
-
-        print("line 647 curr token should be =", self.tokenizer.currToken)
-                
         self.xmlLines.append('</expression>')
 
     """
@@ -677,6 +683,7 @@ class CompilationEngine:
                                 if self.tokenizer.hasMoreTokens():
                                     self.tokenizer.advance()
                                 self.compileExpression()
+                                # return
                             # Subroutine arguments
                             case '(':
                                 self.xmlLines.append('<term>')
@@ -731,10 +738,12 @@ class CompilationEngine:
                             case _:
                                 self.xmlLines.append('<term>')
                                 self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
+                                # return
 
                     else:
                         self.xmlLines.append('<term>')
                         self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
+                        # return
 
 
             case 'INT_CONST':

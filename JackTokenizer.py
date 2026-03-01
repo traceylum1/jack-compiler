@@ -146,7 +146,7 @@ class JackTokenizer:
             return 'SYMBOL'
         # Do we need to ensure digit is within the appropriate range?
         # Only int const if it is after assignment op or an array index
-        elif (prevToken == '=' or prevToken == '[' or prevToken == '-') and currToken.isdigit():
+        elif currToken.isdigit():
             if int(currToken) > 32767:
                 raise RuntimeError('Error: Integer value is greater than 32767')
             return 'INT_CONST'
