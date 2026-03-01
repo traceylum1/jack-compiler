@@ -105,6 +105,14 @@ class JackTokenizer:
         if line[end] in self.symbols:
             end += 1
 
+        # Else if string val
+        elif line[start] == '"':
+            end += 1
+            while end < len(line) and line[end] != '"':
+                end += 1
+            end += 1
+            print('should be string', line[start:end])
+
         # Else iterate through full token until space, symbol, or end of line reached
         else:
             while end < len(line) and line[end] != ' ' and line[end] not in self.symbols:
