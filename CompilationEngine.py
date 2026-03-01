@@ -660,9 +660,12 @@ class CompilationEngine:
                     self.xmlLines.append('<symbol> ' + '&amp;' + ' </symbol>')
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
-                # Unary op terms
                 elif token == '-':
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
                     self.compileTerm()
+                # Unary op term
                 elif token == '~':
                     self.compileTerm()
                 # '('expression')'
