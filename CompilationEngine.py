@@ -634,6 +634,8 @@ class CompilationEngine:
     def compileExpression(self):
         self.xmlLines.append('<expression>')
         
+        self.compileTerm()
+
         while True:
             tokenType = self.tokenizer.tokenType()
             if tokenType == 'SYMBOL':
@@ -660,14 +662,8 @@ class CompilationEngine:
                         self.tokenizer.advance()
                 # Unary op terms
                 elif token == '-':
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
                     self.compileTerm()
                 elif token == '~':
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
                     self.compileTerm()
                 # '('expression')'
                 elif token == '(':
