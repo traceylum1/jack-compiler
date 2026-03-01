@@ -111,7 +111,6 @@ class JackTokenizer:
             while end < len(line) and line[end] != '"':
                 end += 1
             end += 1
-            print('should be string', line[start:end])
 
         # Else iterate through full token until space, symbol, or end of line reached
         else:
@@ -120,7 +119,7 @@ class JackTokenizer:
 
         # Update current token
         self.currToken = line[start:end]
-        print("currToken", self.currToken)
+
         # Skip white spaces
         while end < len(line) and line[end] == ' ':
             end += 1

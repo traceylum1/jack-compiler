@@ -289,6 +289,9 @@ class CompilationEngine:
                         self.compileVarDec()
                     case 'let' | 'if' | 'while' | 'do' | 'return':
                         self.compileStatements()
+                        break
+                    case _:
+                        break
             else:
                 break
 
@@ -674,6 +677,9 @@ class CompilationEngine:
                     self.compileTerm()
                 elif token == '~':
                     self.compileTerm()
+                # '('expression')'
+                elif token == '(':
+                    self.compileTerm()
                 # Other operators
                 else:
                     self.xmlLines.append('<symbol> ' + token + ' </symbol>')
@@ -807,6 +813,8 @@ class CompilationEngine:
                         self.compileExpression()
                         # Get closing parenthesis
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                        if self.tokenizer.hasMoreTokens():
+                            self.tokenizer.advance()
                     case '~':
                         self.compileTerm()
                     case '-':
@@ -814,6 +822,8 @@ class CompilationEngine:
             case 'KEYWORD':
                 self.xmlLines.append('<term>')
                 self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+                if self.tokenizer.hasMoreTokens():
+                    self.tokenizer.advance()
 
         self.xmlLines.append('</term>')
 
