@@ -472,7 +472,6 @@ class CompilationEngine:
             self.tokenizer.advance()
             # Get else keyword
 
-            print("line 477", self.tokenizer.currToken)
             if self.tokenizer.tokenType() == 'KEYWORD' and self.tokenizer.keyWord() == 'else':
                 self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
                 
@@ -655,14 +654,20 @@ class CompilationEngine:
                     self.xmlLines.append('<symbol> ' + '&quot;' + ' </symbol>')
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
-                elif token == '<':
+                elif token == '&':
                     self.xmlLines.append('<symbol> ' + '&amp;' + ' </symbol>')
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 # Unary op terms
                 elif token == '-':
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
                     self.compileTerm()
                 elif token == '~':
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
                     self.compileTerm()
                 # '('expression')'
                 elif token == '(':
