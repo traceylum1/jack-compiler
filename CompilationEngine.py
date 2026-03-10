@@ -378,7 +378,7 @@ class CompilationEngine:
                 currToken = self.tokenizer.identifier()
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
-                    if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == '[':
+                    if self.tokenizer.tokenType() == 'SYMBOL':
                         nextToken = self.tokenizer.symbol()
                         if nextToken == '[':
                             self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
@@ -393,7 +393,10 @@ class CompilationEngine:
                                     self.tokenizer.advance()
                             else:
                                 raise RuntimeError('] expected in compileLet')
+                        else:
+                            raise RuntimeError('[ expected')
                     else:
+                        # Next token is assignment operator--not working with an array index
                         self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
                 else:
                     raise RuntimeError('Unexpected end of input')
