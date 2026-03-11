@@ -274,16 +274,19 @@ class CompilationEngine:
         while True:
 
             # Get parameter primitive/class type and identifier together
-            if self.tokenizer.tokenType() == 'KEYWORD':
-                type = self.tokenizer.keyWord()
-                self.xmlLines.append('<keyword> ' + type + ' </keyword>')
-            elif self.tokenizer.tokenType() == 'IDENTIFIER':
-                type = self.tokenizer.identifier()
-                self.xmlLines.append('<identifier>')
-                self.xmlLines.append('<using>')
-                self.xmlLines.append('<identifierName> ' + type + ' </identifierName>')
-                self.xmlLines.append('</using>')
-                self.xmlLines.append('</identifier>')
+            tokenType = self.tokenizer.tokenType()
+
+            if tokenType == 'KEYWORD' or tokenType == 'IDENTIFIER':
+                if tokenType == 'KEYWORD':
+                    type = self.tokenizer.keyWord()
+                    self.xmlLines.append('<keyword> ' + type + ' </keyword>')
+                elif tokenType == 'IDENTIFIER':
+                    type = self.tokenizer.identifier()
+                    self.xmlLines.append('<identifier>')
+                    self.xmlLines.append('<using>')
+                    self.xmlLines.append('<identifierName> ' + type + ' </identifierName>')
+                    self.xmlLines.append('</using>')
+                    self.xmlLines.append('</identifier>')
 
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
@@ -308,7 +311,7 @@ class CompilationEngine:
                     raise RuntimeError('Unexpected end of input')
             
             # Get comma or end of parameter list
-            elif self.tokenizer.tokenType() == 'SYMBOL':
+            elif tokenType == 'SYMBOL':
                 token = self.tokenizer.symbol()
                 # End class var dec if semicolon reached
                 if token == ')':
