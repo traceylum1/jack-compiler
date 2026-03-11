@@ -86,9 +86,9 @@ class SymbolTable:
     """
     def KindOf(self, name: str) -> str:
         if self.subroutineScope and name in self.subroutineScope:
-            return self.subroutineScope[name].kind
+            return self.subroutineScope[name]['kind']
         elif name in self.classScope:
-            return self.classScope[name].kind
+            return self.classScope[name]['kind']
         else:
             return 'NONE'
 
@@ -103,9 +103,9 @@ class SymbolTable:
     """
     def TypeOf(self, name: str) -> str:
         if self.subroutineScope and name in self.subroutineScope:
-            return self.subroutineScope[name].type
+            return self.subroutineScope[name]['type']
         elif name in self.classScope:
-            return self.classScope[name].type
+            return self.classScope[name]['type']
         else:
             raise Exception('Identifier not declared')
 

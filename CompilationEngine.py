@@ -176,11 +176,10 @@ class CompilationEngine:
                 self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
             elif self.tokenizer.tokenType() == 'IDENTIFIER':
-                identifier = self.tokenizer.identifier()
                 self.xmlLines.append('<identifier>')
                 self.xmlLines.append('<using>')
 
-                self.xmlLines.append('<identifierName> ' + identifier + ' </identifierName>')
+                self.xmlLines.append('<identifierName> ' + self.tokenizer.identifier() + ' </identifierName>')
                 self.xmlLines.append('<category> ' + 'className' + ' </category>')
                 
                 self.xmlLines.append('</using>')
@@ -192,11 +191,10 @@ class CompilationEngine:
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'IDENTIFIER':
-                identifier = self.tokenizer.identifier()
                 self.xmlLines.append('<identifier>')
                 self.xmlLines.append('<defining>')
 
-                self.xmlLines.append('<identifierName> ' + identifier + ' </identifierName>')
+                self.xmlLines.append('<identifierName> ' + self.tokenizer.identifier() + ' </identifierName>')
                 self.xmlLines.append('<category> ' + 'subroutineName' + ' </category>')
                 
                 self.xmlLines.append('</defining>')
@@ -436,38 +434,49 @@ class CompilationEngine:
         # Get let keyword
         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
-        # Get identifier -- varName('['expression']')?
+        # Get next token
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
-            if self.tokenizer.tokenType() == 'IDENTIFIER':
-                currToken = self.tokenizer.identifier()
-                if self.tokenizer.hasMoreTokens():
-                    self.tokenizer.advance()
-                    if self.tokenizer.tokenType() == 'SYMBOL':
-                        nextToken = self.tokenizer.symbol()
-                        if nextToken == '[':
-                            self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
-                            self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
-                            if self.tokenizer.hasMoreTokens():
-                                self.tokenizer.advance()
-                            self.compileExpression()
-                            # Get closing square bracket
-                            if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ']':
-                                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                                if self.tokenizer.hasMoreTokens():
-                                    self.tokenizer.advance()
-                            else:
-                                raise RuntimeError('] expected in compileLet')
-                    else:
-                        # Next token is assignment operator--not working with an array index
-                        self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
-                else:
-                    raise RuntimeError('Unexpected end of input')
-            else:
-                raise RuntimeError('Identifier expected in compileLet')
         else:
             raise RuntimeError('Unexpected end of input')
+        
+        # Get identifier -- varName('['expression']')?
+        if self.tokenizer.tokenType() == 'IDENTIFIER':
+            currToken = self.tokenizer.identifier()
+        else:
+            raise RuntimeError('Identifier expected in compileLet')
 
+        self.xmlLines.append('<identifier>')
+        self.xmlLines.append('<using>')
+
+        self.xmlLines.append('<identifierName> ' + currToken + ' </identifierName>')
+        self.xmlLines.append('<category> ' + self.symbolTable.KindOf(currToken) + ' </category>')
+        self.xmlLines.append('<index> ' + str(self.symbolTable.IndexOf(currToken)) + ' </index>')
+        
+        self.xmlLines.append('</using>')
+        self.xmlLines.append('</identifier>')
+        
+        # Get next token, either assignment operator or opening square bracket for array index
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        if self.tokenizer.tokenType() == 'SYMBOL':
+            nextToken = self.tokenizer.symbol()
+            if nextToken == '[':
+                self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
+                if self.tokenizer.hasMoreTokens():
+                    self.tokenizer.advance()
+                self.compileExpression()
+                # Get closing square bracket
+                if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ']':
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
+                else:
+                    raise RuntimeError('] expected in compileLet')
+    
         # Get assignment operator
         if self.tokenizer.tokenType() == 'SYMBOL':
             self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
