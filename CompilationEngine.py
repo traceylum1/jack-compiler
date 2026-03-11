@@ -386,7 +386,10 @@ class CompilationEngine:
                 type = self.tokenizer.keyWord()
                 self.xmlLines.append('<identifier>')
                 self.xmlLines.append('<using>')
+
                 self.xmlLines.append('<identifierName> ' + type + ' </identifierName>')
+                self.xmlLines.append('<category> ' + 'className' + ' </category>')
+
                 self.xmlLines.append('</using>')
                 self.xmlLines.append('</identifier>')
         else:
@@ -516,7 +519,9 @@ class CompilationEngine:
         # Get expression for if conditional
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
-        self.compileExpression()
+            self.compileExpression()
+        else:
+            raise RuntimeError('Unexpected end of input')
         
         # Get closing parenthesis for if conditional
         if self.tokenizer.tokenType() == 'SYMBOL':
@@ -537,7 +542,9 @@ class CompilationEngine:
         # Get statements for if conditional
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
-        self.compileStatements()
+            self.compileStatements()
+        else:
+            raise RuntimeError('Unexpected end of input')
         
         # Get closing curly bracket for if conditional statements
         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
@@ -564,6 +571,8 @@ class CompilationEngine:
 
                         # Get closing curly bracket for else conditional statements
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+        else:
+            raise RuntimeError('Unexpected end of input')
 
         self.xmlLines.append('</ifStatement>')
 
@@ -770,10 +779,15 @@ class CompilationEngine:
         tokenType = self.tokenizer.tokenType()
         if tokenType == 'IDENTIFIER':
             currToken = self.tokenizer.identifier()
+
+            currTokenKind = self.symbolTable.KindOf(currToken)
+            currTokenIdx = self.symbolTable.IndexOf(currToken)
+
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
                 if self.tokenizer.tokenType() == 'SYMBOL':
                     nextToken = self.tokenizer.symbol()
+                    
                     # Array index
                     if nextToken == '[':
                         self.xmlLines.append('<term>')
@@ -785,8 +799,8 @@ class CompilationEngine:
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
-                        # return
-                    # Subroutine arguments
+
+                    # Subroutine call and arguments
                     elif nextToken == '(':
                         self.xmlLines.append('<term>')
                         self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
@@ -798,7 +812,7 @@ class CompilationEngine:
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
-                        # return
+
                     # Method identifier
                     # subroutineName'('expressionList')'
                     # (className | varName)'.'subroutineName'('expressionList')'
@@ -835,16 +849,33 @@ class CompilationEngine:
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
-                        # return
+
+                    # Next token is comma or semicolon indicating end of term
                     else:
                         self.xmlLines.append('<term>')
-                        self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
-                        # return
+                        self.xmlLines.append('<identifier>')
+                        self.xmlLines.append('<using>')
 
-                else:
-                    self.xmlLines.append('<term>')
-                    self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
-                    # return
+                        self.xmlLines.append('<identifierName> ' + currToken + ' </identifierName>')
+                        self.xmlLines.append('<category> ' + currTokenKind + ' </category>')
+                        self.xmlLines.append('<index> ' + str(currTokenIdx) + ' </index>')
+
+                        self.xmlLines.append('</using>')
+                        self.xmlLines.append('</identifier>')
+
+                # # Regular identifier term ? is this necessary? should ONLY expect symbol after identifier term anyways.
+                # else:
+                #     self.xmlLines.append('<term>')
+
+                #     self.xmlLines.append('<identifier>')
+                #     self.xmlLines.append('<using>')
+
+                #     self.xmlLines.append('<identifierName> ' + currToken + ' </identifierName>')
+                #     self.xmlLines.append('<category> ' + currTokenKind + ' </category>')
+                #     self.xmlLines.append('<index> ' + currTokenIdx + ' </index>')
+
+                #     self.xmlLines.append('</using>')
+                #     self.xmlLines.append('</identifier>')
 
 
         elif tokenType == 'INT_CONST':
