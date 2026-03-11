@@ -2,6 +2,16 @@
 SymbolTable class
     - Handles variable management in class level and subroutine levels
     - Stores variable type, kind, and index
+    
+    VM segment kinds:
+        - local
+        - argument
+        - this
+        - that
+        - static
+        - constant
+        - pointer
+        - temp
 """
 
 class SymbolTable:
@@ -13,10 +23,10 @@ class SymbolTable:
         self.subroutineScope = None
 
         self.indices = {
-            'STATIC': 0,
-            'FIELD': 0,
-            'ARG': 0,
-            'VAR': 0,
+            'static': 0,
+            'field': 0,
+            'argument': 0,
+            'local': 0,   # local var
         }
     
 
@@ -25,6 +35,8 @@ class SymbolTable:
     """
     def startSubroutine(self):
         self.subroutineScope = {}
+        self.indices['argument'] = 0
+        self.indices['local'] = 0
 
 
     """
@@ -36,11 +48,15 @@ class SymbolTable:
             type (String)
             kind (STATIC, FIELD, ARG, or VAR)
     """
-    def define(self, name, type, kind):
+    def define(self, name: str, type: str, kind: str) -> None:
         match kind:
-            case 'STATIC' | 'FIELD':
+            case 'static':
                 self.classScope[name] = {'type': type, 'kind': kind, 'index': self.VarCount(kind)}
-            case 'ARG' | 'VAR':
+            case 'field':
+                self.classScope[name] = {'type': type, 'kind': kind, 'index': self.VarCount(kind)}
+            case 'argument':
+                self.subroutineScope[name] = {'type': type, 'kind': kind, 'index': self.VarCount(kind)}
+            case 'local':
                 self.subroutineScope[name] = {'type': type, 'kind': kind, 'index': self.VarCount(kind)}
         self.indices[kind] += 1
 
@@ -53,7 +69,7 @@ class SymbolTable:
         Returns:
             int
     """
-    def VarCount(self, kind):
+    def VarCount(self, kind: str) -> int:
         return self.indices[kind]
 
 
@@ -67,8 +83,8 @@ class SymbolTable:
         Returns:
             (STATIC, FIELD, ARG, VAR, NONE)
     """
-    def KindOf(self, name):
-        if name in self.subroutineScope:
+    def KindOf(self, name: str) -> str:
+        if self.subroutineScope and name in self.subroutineScope:
             return self.subroutineScope[name].kind
         elif name in self.classScope:
             return self.classScope[name].kind
@@ -84,8 +100,8 @@ class SymbolTable:
         Returns:
             String
     """
-    def TypeOf(self, name):
-        if name in self.subroutineScope:
+    def TypeOf(self, name: str) -> str:
+        if self.subroutineScope and name in self.subroutineScope:
             return self.subroutineScope[name].type
         elif name in self.classScope:
             return self.classScope[name].type
@@ -101,10 +117,10 @@ class SymbolTable:
         Returns:
             int
     """
-    def IndexOf(self, name):
-        if name in self.subroutineScope:
-            return self.subroutineScope[name].index
+    def IndexOf(self, name: str) -> int:
+        if self.subroutineScope and name in self.subroutineScope:
+            return self.subroutineScope[name]['index']
         elif name in self.classScope:
-            return self.classScope[name].index
+            return self.classScope[name]['index']
         else:
             raise Exception('Identifier not declared')

@@ -1,4 +1,5 @@
 from JackTokenizer import JackTokenizer
+from SymbolTable import SymbolTable
 
 """
 CompilationEngine class
@@ -11,10 +12,11 @@ class CompilationEngine:
     """
     Constructor: Gets input from tokenizer and outputs xml
     """
-    def __init__(self, tokenizer:  JackTokenizer, filePath: str):
+    def __init__(self, tokenizer:  JackTokenizer, symbolTable: SymbolTable, filePath: str):
         self.xmlLines = []
 
         self.tokenizer = tokenizer
+        self.symbolTable = symbolTable
 
         if len(tokenizer.lines) == 0:
             print('File empty. Nothing to compile')
@@ -91,16 +93,25 @@ class CompilationEngine:
     """
     def compileClassVarDec(self):
         self.xmlLines.append('<classVarDec>')
+
+        # Store for symbol table
+        kind = ''
+        type = ''
+        varName = ''
+
         # Get field/static keyword
-        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+        kind = self.tokenizer.keyWord()
+        self.xmlLines.append('<keyword> ' + kind + ' </keyword>')
 
         # Get primitive type keyword or class identifier
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'KEYWORD':
-                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+                type = self.tokenizer.keyWord()
+                self.xmlLines.append('<keyword> ' + type + ' </keyword>')
             elif self.tokenizer.tokenType() == 'IDENTIFIER':
-                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                type = self.tokenizer.identifier()
+                self.xmlLines.append('<identifier> ' + type + ' </identifier>')
         else:
             raise RuntimeError('Unexpected end of input')
 
@@ -109,7 +120,20 @@ class CompilationEngine:
             self.tokenizer.advance()
 
             if self.tokenizer.tokenType() == 'IDENTIFIER':
-                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                varName = self.tokenizer.identifier()
+
+                # Update symbol table, get category and running index
+                self.symbolTable.define(varName, type, kind)
+                
+                self.xmlLines.append('<identifier>')
+                self.xmlLines.append('<defining>')
+
+                self.xmlLines.append('<identifierName> ' + varName + ' </identifierName>')
+                self.xmlLines.append('<category> ' + kind + ' </category>')
+                self.xmlLines.append('<index> ' + str(self.symbolTable.IndexOf(varName)) + ' </index>')
+                
+                self.xmlLines.append('</defining>')
+                self.xmlLines.append('</identifier>')
 
             elif self.tokenizer.tokenType() == 'SYMBOL':
                 token = self.tokenizer.symbol()
@@ -129,6 +153,9 @@ class CompilationEngine:
     """
     def compileSubroutineDec(self):
         self.xmlLines.append('<subroutineDec>')
+
+        # Create new subroutine scope symbol table
+        self.symbolTable.startSubroutine()
 
         # Get function/method/constructor keyword
         token = self.tokenizer.keyWord()
@@ -223,24 +250,23 @@ class CompilationEngine:
             return
 
         # Get parameter type keyword
-        if self.tokenizer.tokenType() == 'KEYWORD':
-                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
-        else:
-            raise RuntimeError('Keyword expected')
+        # if self.tokenizer.tokenType() == 'KEYWORD':
+        #         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+        # else:
+        #     raise RuntimeError('Keyword expected')
 
-        # Get parameter identifier
-        if self.tokenizer.hasMoreTokens():
-            self.tokenizer.advance()
-            if self.tokenizer.tokenType() == 'IDENTIFIER':
-                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
-            else:
-                raise RuntimeError('Identifier expected')
-        else:
-            raise RuntimeError('Unexpected end of input')
+        # # Get parameter identifier
+        # if self.tokenizer.hasMoreTokens():
+        #     self.tokenizer.advance()
+        #     if self.tokenizer.tokenType() == 'IDENTIFIER':
+        #         self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+        #     else:
+        #         raise RuntimeError('Identifier expected')
+        # else:
+        #     raise RuntimeError('Unexpected end of input')
 
-        # Get additional parameter identifier(s)
-        while self.tokenizer.hasMoreTokens():
-            self.tokenizer.advance()
+        # Get parameter identifier(s)
+        while True:
 
             # Get parameter type and identifier together
             if self.tokenizer.tokenType() == 'KEYWORD':
@@ -253,6 +279,9 @@ class CompilationEngine:
                         raise RuntimeError('Identifier expected')
                 else:
                     raise RuntimeError('Unexpected end of input')
+                
+                if self.tokenizer.hasMoreTokens():
+                    self.tokenizer.advance()
             
             # Get comma or end of parameter list
             elif self.tokenizer.tokenType() == 'SYMBOL':
@@ -398,8 +427,6 @@ class CompilationEngine:
                                     self.tokenizer.advance()
                             else:
                                 raise RuntimeError('] expected in compileLet')
-                        else:
-                            raise RuntimeError('[ expected')
                     else:
                         # Next token is assignment operator--not working with an array index
                         self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')

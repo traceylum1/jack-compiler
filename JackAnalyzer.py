@@ -2,6 +2,7 @@ import argparse
 import os
 from JackTokenizer import JackTokenizer
 from CompilationEngine import CompilationEngine
+from SymbolTable import SymbolTable
 
 """
 Jack Analyzer
@@ -41,8 +42,10 @@ def main():
 
     for filePath in fileArr:
         tokenizer = JackTokenizer(filePath)
+
         try:
-            CompilationEngine(tokenizer, filePath)
+            symbolTable = SymbolTable()
+            CompilationEngine(tokenizer, symbolTable, filePath)
         except RuntimeError as error:
             print(error)
             return
