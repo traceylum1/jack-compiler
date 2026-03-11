@@ -249,25 +249,8 @@ class CompilationEngine:
             self.xmlLines.append('</parameterList>')
             return
 
-        # Get parameter type keyword
-        # if self.tokenizer.tokenType() == 'KEYWORD':
-        #         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
-        # else:
-        #     raise RuntimeError('Keyword expected')
-
-        # # Get parameter identifier
-        # if self.tokenizer.hasMoreTokens():
-        #     self.tokenizer.advance()
-        #     if self.tokenizer.tokenType() == 'IDENTIFIER':
-        #         self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
-        #     else:
-        #         raise RuntimeError('Identifier expected')
-        # else:
-        #     raise RuntimeError('Unexpected end of input')
-
         # Get parameter identifier(s)
         while True:
-
             # Get parameter type and identifier together
             if self.tokenizer.tokenType() == 'KEYWORD':
                 self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
@@ -279,9 +262,6 @@ class CompilationEngine:
                         raise RuntimeError('Identifier expected')
                 else:
                     raise RuntimeError('Unexpected end of input')
-                
-                if self.tokenizer.hasMoreTokens():
-                    self.tokenizer.advance()
             
             # Get comma or end of parameter list
             elif self.tokenizer.tokenType() == 'SYMBOL':
@@ -294,6 +274,9 @@ class CompilationEngine:
             else:
                 raise RuntimeError('Keyword, identifier or symbol expected')
 
+            # Get next token
+            if self.tokenizer.hasMoreTokens():
+                self.tokenizer.advance()
 
         self.xmlLines.append('</parameterList>')
 
