@@ -52,7 +52,15 @@ class CompilationEngine:
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'IDENTIFIER':
-                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                identifier = self.tokenizer.identifier()
+                self.xmlLines.append('<identifier>')
+                self.xmlLines.append('<defining>')
+
+                self.xmlLines.append('<identifierName> ' + identifier + ' </identifierName>')
+                self.xmlLines.append('<category> ' + 'class' + ' </category>')
+                
+                self.xmlLines.append('</defining>')
+                self.xmlLines.append('</identifier>')
             else:
                 raise RuntimeError('Identifier expected')
         else:
@@ -177,7 +185,15 @@ class CompilationEngine:
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
                 if self.tokenizer.tokenType() == 'IDENTIFIER':
-                    self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                    identifier = self.tokenizer.identifier()
+                    self.xmlLines.append('<identifier>')
+                    self.xmlLines.append('<defining>')
+
+                    self.xmlLines.append('<identifierName> ' + identifier + ' </identifierName>')
+                    self.xmlLines.append('<category> ' + 'subroutineName' + ' </category>')
+                    
+                    self.xmlLines.append('</defining>')
+                    self.xmlLines.append('</identifier>')
                 else:
                     raise RuntimeError('Identifier expected')
             else:
@@ -249,15 +265,43 @@ class CompilationEngine:
             self.xmlLines.append('</parameterList>')
             return
 
+        # Store for symbol table
+        kind = 'argument'
+        type = ''
+        varName = ''
+
         # Get parameter identifier(s)
         while True:
-            # Get parameter type and identifier together
+
+            # Get parameter primitive/class type and identifier together
             if self.tokenizer.tokenType() == 'KEYWORD':
-                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+                type = self.tokenizer.keyWord()
+                self.xmlLines.append('<keyword> ' + type + ' </keyword>')
+            elif self.tokenizer.tokenType() == 'IDENTIFIER':
+                type = self.tokenizer.identifier()
+                self.xmlLines.append('<identifier>')
+                self.xmlLines.append('<using>')
+                self.xmlLines.append('<identifierName> ' + type + ' </identifierName>')
+                self.xmlLines.append('</using>')
+                self.xmlLines.append('</identifier>')
+
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
                     if self.tokenizer.tokenType() == 'IDENTIFIER':
-                        self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                        varName = self.tokenizer.identifier()
+
+                        # Update symbol table, get category and running index
+                        self.symbolTable.define(varName, type, kind)
+                        
+                        self.xmlLines.append('<identifier>')
+                        self.xmlLines.append('<defining>')
+
+                        self.xmlLines.append('<identifierName> ' + varName + ' </identifierName>')
+                        self.xmlLines.append('<category> ' + kind + ' </category>')
+                        self.xmlLines.append('<index> ' + str(self.symbolTable.IndexOf(varName)) + ' </index>')
+                        
+                        self.xmlLines.append('</defining>')
+                        self.xmlLines.append('</identifier>')
                     else:
                         raise RuntimeError('Identifier expected')
                 else:
@@ -344,17 +388,23 @@ class CompilationEngine:
         # Get var keyword
         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
     
+        # Store for symbol table
+        kind = 'local'
+        type = ''
+        varName = ''
+
         # Get primitive type keyword or class identifier
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'KEYWORD':
-                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+                type = self.tokenizer.keyWord()
+                self.xmlLines.append('<keyword> ' + type + ' </keyword>')
             elif self.tokenizer.tokenType() == 'IDENTIFIER':
+                type = self.tokenizer.keyWord()
                 self.xmlLines.append('<identifier>')
-                self.xmlLines.append('<defining>')
-                self.xmlLines.append('<identifierName> ' + self.tokenizer.identifier() + ' </identifierName>')
-                
-                self.xmlLines.append('</defining>')
+                self.xmlLines.append('<using>')
+                self.xmlLines.append('<identifierName> ' + type + ' </identifierName>')
+                self.xmlLines.append('</using>')
                 self.xmlLines.append('</identifier>')
         else:
             raise RuntimeError('Unexpected end of input')
@@ -364,7 +414,20 @@ class CompilationEngine:
             self.tokenizer.advance()
 
             if self.tokenizer.tokenType() == 'IDENTIFIER':
-                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                varName = self.tokenizer.identifier()
+
+                # Update symbol table, get category and running index
+                self.symbolTable.define(varName, type, kind)
+                
+                self.xmlLines.append('<identifier>')
+                self.xmlLines.append('<defining>')
+
+                self.xmlLines.append('<identifierName> ' + varName + ' </identifierName>')
+                self.xmlLines.append('<category> ' + kind + ' </category>')
+                self.xmlLines.append('<index> ' + str(self.symbolTable.IndexOf(varName)) + ' </index>')
+                
+                self.xmlLines.append('</defining>')
+                self.xmlLines.append('</identifier>')
 
             elif self.tokenizer.tokenType() == 'SYMBOL':
                 token = self.tokenizer.symbol()
