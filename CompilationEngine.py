@@ -338,7 +338,12 @@ class CompilationEngine:
             if self.tokenizer.tokenType() == 'KEYWORD':
                 self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
             elif self.tokenizer.tokenType() == 'IDENTIFIER':
-                self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
+                self.xmlLines.append('<identifier>')
+                self.xmlLines.append('<defining>')
+                self.xmlLines.append('<identifierName> ' + self.tokenizer.identifier() + ' </identifierName>')
+                
+                self.xmlLines.append('</defining>')
+                self.xmlLines.append('</identifier>')
         else:
             raise RuntimeError('Unexpected end of input')
         
