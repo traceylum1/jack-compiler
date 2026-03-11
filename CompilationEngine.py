@@ -166,63 +166,45 @@ class CompilationEngine:
         self.symbolTable.startSubroutine()
 
         # Get function/method/constructor keyword
-        token = self.tokenizer.keyWord()
-        if token == 'function' or token == 'method':
-            self.xmlLines.append('<keyword> ' + token + ' </keyword>')
+        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
-            # Get return type keyword
-            if self.tokenizer.hasMoreTokens():
-                self.tokenizer.advance()
+        # Get return type keyword or class
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
 
-                if self.tokenizer.tokenType() == 'KEYWORD':
-                    self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
-                else:
-                    raise RuntimeError('Keyword expected')
+            if self.tokenizer.tokenType() == 'KEYWORD':
+                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+
+            elif self.tokenizer.tokenType() == 'IDENTIFIER':
+                identifier = self.tokenizer.identifier()
+                self.xmlLines.append('<identifier>')
+                self.xmlLines.append('<using>')
+
+                self.xmlLines.append('<identifierName> ' + identifier + ' </identifierName>')
+                self.xmlLines.append('<category> ' + 'className' + ' </category>')
+                
+                self.xmlLines.append('</using>')
+                self.xmlLines.append('</identifier>')
+        else:
+            raise RuntimeError('Unexpected end of input')
+
+        # Get subroutine identifier
+        if self.tokenizer.hasMoreTokens():
+            self.tokenizer.advance()
+            if self.tokenizer.tokenType() == 'IDENTIFIER':
+                identifier = self.tokenizer.identifier()
+                self.xmlLines.append('<identifier>')
+                self.xmlLines.append('<defining>')
+
+                self.xmlLines.append('<identifierName> ' + identifier + ' </identifierName>')
+                self.xmlLines.append('<category> ' + 'subroutineName' + ' </category>')
+                
+                self.xmlLines.append('</defining>')
+                self.xmlLines.append('</identifier>')
             else:
-                raise RuntimeError('Unexpected end of input')
-
-            # Get subroutine identifier
-            if self.tokenizer.hasMoreTokens():
-                self.tokenizer.advance()
-                if self.tokenizer.tokenType() == 'IDENTIFIER':
-                    identifier = self.tokenizer.identifier()
-                    self.xmlLines.append('<identifier>')
-                    self.xmlLines.append('<defining>')
-
-                    self.xmlLines.append('<identifierName> ' + identifier + ' </identifierName>')
-                    self.xmlLines.append('<category> ' + 'subroutineName' + ' </category>')
-                    
-                    self.xmlLines.append('</defining>')
-                    self.xmlLines.append('</identifier>')
-                else:
-                    raise RuntimeError('Identifier expected')
-            else:
-                raise RuntimeError('Unexpected end of input')
-    
-        elif token == 'constructor':
-            self.xmlLines.append('<keyword> ' + token + ' </keyword>')
-
-            # Get constructor identifier
-            if self.tokenizer.hasMoreTokens():
-                self.tokenizer.advance()
-                if self.tokenizer.tokenType() == 'IDENTIFIER':
-                    self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
-                else:
-                    raise RuntimeError('Identifier expected')
-            else:
-                raise RuntimeError('Unexpected end of input')
-
-            # Get new identifier
-            if self.tokenizer.hasMoreTokens():
-                self.tokenizer.advance()
-
-                if self.tokenizer.tokenType() == 'IDENTIFIER':
-                    self.xmlLines.append('<identifier> ' + self.tokenizer.identifier() + ' </identifier>')
-                else:
-                    raise RuntimeError('Identifier expected')
-            else:
-                raise RuntimeError('Unexpected end of input')
-
+                raise RuntimeError('Identifier expected')
+        else:
+            raise RuntimeError('Unexpected end of input')
 
         # Get opening parenthesis for parameter list
         if self.tokenizer.hasMoreTokens():
