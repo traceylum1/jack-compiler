@@ -44,8 +44,7 @@ def main():
         tokenizer = JackTokenizer(filePath)
 
         try:
-            symbolTable = SymbolTable()
-            CompilationEngine(tokenizer, symbolTable, filePath)
+            CompilationEngine(tokenizer, filePath)
         except RuntimeError as error:
             print(error)
             return

@@ -1,5 +1,6 @@
 from JackTokenizer import JackTokenizer
 from SymbolTable import SymbolTable
+from VMWriter import VMWriter
 
 """
 CompilationEngine class
@@ -12,11 +13,12 @@ class CompilationEngine:
     """
     Constructor: Gets input from tokenizer and outputs xml
     """
-    def __init__(self, tokenizer:  JackTokenizer, symbolTable: SymbolTable, filePath: str):
+    def __init__(self, tokenizer:  JackTokenizer, filePath: str):
         self.xmlLines = []
 
         self.tokenizer = tokenizer
-        self.symbolTable = symbolTable
+        self.symbolTable = SymbolTable()
+        self.vmWriter = VMWriter()
 
         if len(tokenizer.lines) == 0:
             print('File empty. Nothing to compile')
@@ -730,10 +732,12 @@ class CompilationEngine:
                 # Get operators
                 elif token == '<':
                     self.xmlLines.append('<symbol> ' + '&lt;' + ' </symbol>')
+                    self.vmWriter.writeArithmetic('lt') # Write lt
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '>':
                     self.xmlLines.append('<symbol> ' + '&gt;' + ' </symbol>')
+                    self.vmWriter.writeArithmetic('gt') # Write gt
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '"':
