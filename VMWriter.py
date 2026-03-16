@@ -33,7 +33,7 @@ class VMWriter:
             case 'POINTER':
                 vmSegment = 'pointer'
             case 'TEMP':
-                self.vmCode.append('temp')
+                vmSegment = 'temp'
         self.vmCode.append(f'push {vmSegment} {str(index)}')
 
 
@@ -42,7 +42,25 @@ class VMWriter:
         - segment: ARGUMENT, LOCAL, STATIC, THIS, THAT, POINTER, TEMP
     """
     def writePop(self, segment: str, index: int) -> None:
-        self.vmCode.append(f'pop {segment} {str(index)}')
+        vmSegment = ''
+        match segment:
+            case 'CONSTANT':
+                vmSegment = 'constant'
+            case 'ARGUMENT':
+                vmSegment = 'argument'
+            case 'LOCAL':
+                vmSegment = 'local'
+            case 'STATIC':
+                vmSegment = 'static'
+            case 'THIS':
+                vmSegment = 'this'
+            case 'THAT':
+                vmSegment = 'that'
+            case 'POINTER':
+                vmSegment = 'pointer'
+            case 'TEMP':
+                vmSegment = 'temp'
+        self.vmCode.append(f'pop {vmSegment} {str(index)}')
 
 
     """

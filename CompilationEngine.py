@@ -19,7 +19,8 @@ class CompilationEngine:
         self.tokenizer = tokenizer
         self.symbolTable = SymbolTable()
         self.vmWriter = VMWriter(filePath=filePath)
-        self.subroutineArgCount = {}
+
+        self.currSubroutineName = ''
 
         if len(tokenizer.lines) == 0:
             print('File empty. Nothing to compile')
@@ -175,9 +176,6 @@ class CompilationEngine:
         # Create new subroutine scope symbol table
         self.symbolTable.startSubroutine()
 
-        # Store for VM writer writeFunction
-        subroutineName = ''
-
         # Get function/method/constructor keyword
         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
@@ -203,12 +201,11 @@ class CompilationEngine:
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'IDENTIFIER':
-                subroutineName = self.tokenizer.identifier()
-                self.subroutineArgCount[subroutineName] = 0
+                self.currSubroutineName = self.tokenizer.identifier()
 
                 self.xmlLines.append('<identifier>')
                 self.xmlLines.append('<defining>')
-                self.xmlLines.append('<identifierName> ' + subroutineName + ' </identifierName>')
+                self.xmlLines.append('<identifierName> ' + self.currSubroutineName + ' </identifierName>')
                 self.xmlLines.append('<category> ' + 'subroutineName' + ' </category>')
                 self.xmlLines.append('</defining>')
                 self.xmlLines.append('</identifier>')
@@ -231,7 +228,6 @@ class CompilationEngine:
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             self.compileParameterList()
-            self.subroutineArgCount[subroutineName] = self.symbolTable.VarCount('argument')
             self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         else:
             raise RuntimeError('Unexpected end of input')
@@ -330,21 +326,16 @@ class CompilationEngine:
         # Get opening curly bracket
         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
 
-        while self.tokenizer.hasMoreTokens():
+        if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
-            if self.tokenizer.tokenType() == 'KEYWORD':
-                token = self.tokenizer.keyWord()
-                if token == 'var':
-                    self.compileVarDec()
-
-                    # self.vmWriter.writeFunction()
-                elif token == 'let' or token == 'if' or token == 'while' or token == 'do' or token == 'return':
-                    self.compileStatements()
-                    break
-                else:
-                    break
-            else:
-                break
+        else:
+            raise RuntimeError('Unexpected end of input')
+        
+        if self.tokenizer.tokenType() == 'KEYWORD':
+            self.compileVarDec()
+            self.compileStatements()
+        else:
+            raise RuntimeError('Keyword expected in compileSubroutineBody')
 
         # Get closing curly bracket
         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
@@ -382,6 +373,12 @@ class CompilationEngine:
     compileVarDec: Compiles a var declaration
     """
     def compileVarDec(self):
+
+        # No local variables
+        if self.tokenizer.keyWord() != 'var':
+            self.vmWriter.writeFunction(self.currSubroutineName, 0)
+            return
+
         self.xmlLines.append('<varDec>')
 
         # Store for symbol table
@@ -649,7 +646,9 @@ class CompilationEngine:
     def compileDo(self):
         self.xmlLines.append('<doStatement>')
 
+        className = ''
         subroutineName = ''
+        argCount = 0
 
         # Get do keyword
         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
@@ -669,12 +668,12 @@ class CompilationEngine:
                     nextToken = self.tokenizer.symbol()
                     # currToken is subroutine name
                     if nextToken == '(':
+                        subroutineName = currToken
+
                         self.xmlLines.append('<identifier>')
                         self.xmlLines.append('<using>')
-
                         self.xmlLines.append('<identifierName> ' + currToken + ' </identifierName>')
                         self.xmlLines.append('<category> ' + 'subroutineName' + ' </category>')
-                        
                         self.xmlLines.append('</using>')
                         self.xmlLines.append('</identifier>')
 
@@ -689,12 +688,12 @@ class CompilationEngine:
                             self.tokenizer.advance()
                     # currToken is class name
                     elif nextToken == '.':
+                        className = currToken
+
                         self.xmlLines.append('<identifier>')
                         self.xmlLines.append('<using>')
-
                         self.xmlLines.append('<identifierName> ' + currToken + ' </identifierName>')
                         self.xmlLines.append('<category> ' + 'className' + ' </category>')
-                        
                         self.xmlLines.append('</using>')
                         self.xmlLines.append('</identifier>')
 
@@ -704,12 +703,12 @@ class CompilationEngine:
                             self.tokenizer.advance()
                             # Get subroutine name
                             if self.tokenizer.tokenType() == 'IDENTIFIER':
+                                subroutineName = self.tokenizer.identifier()
+
                                 self.xmlLines.append('<identifier>')
                                 self.xmlLines.append('<using>')
-
-                                self.xmlLines.append('<identifierName> ' + self.tokenizer.symbol() + ' </identifierName>')
+                                self.xmlLines.append('<identifierName> ' + subroutineName + ' </identifierName>')
                                 self.xmlLines.append('<category> ' + 'subroutineName' + ' </category>')
-                                
                                 self.xmlLines.append('</using>')
                                 self.xmlLines.append('</identifier>')
 
@@ -721,7 +720,8 @@ class CompilationEngine:
                                             self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                                             if self.tokenizer.hasMoreTokens():
                                                 self.tokenizer.advance()
-                                            self.compileExpressionList()
+                                            argCount = self.compileExpressionList()
+
                                             # Get closing parenthesis of expression list
                                             self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                                             if self.tokenizer.hasMoreTokens():
@@ -733,6 +733,16 @@ class CompilationEngine:
         if self.tokenizer.tokenType() == 'SYMBOL':
             token = self.tokenizer.symbol()
             self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+
+        functionName = ''
+        if className != '':
+            functionName = className + '.' + subroutineName
+        else:
+            functionName = subroutineName
+        
+        self.vmWriter.writeCall(functionName, argCount)
+        self.vmWriter.writePop('TEMP', 0)
+        self.vmWriter.writePush('CONSTANT', 0)
 
         self.xmlLines.append('</doStatement>')
 
@@ -1007,6 +1017,9 @@ class CompilationEngine:
     compileExpressionList: Compiles a (possibly empty) comma-separated list of expressions
     """
     def compileExpressionList(self):
+
+        count = 0
+
         self.xmlLines.append('<expressionList>')
 
         # Empty expression list
@@ -1016,12 +1029,16 @@ class CompilationEngine:
         
         else: 
             self.compileExpression()
+            count += 1
             while self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ',':
                 self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
                 self.compileExpression()
+                count += 1
                 if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ')':
                     break
                 
         self.xmlLines.append('</expressionList>')
+
+        return count
