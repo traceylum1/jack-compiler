@@ -46,7 +46,7 @@ class SymbolTable:
         Parameters:
             name (String)
             type (String)
-            kind (STATIC, FIELD, ARG, or VAR)
+            kind (static, field, argument, or local)
     """
     def define(self, name: str, type: str, kind: str) -> None:
         match kind:
@@ -65,7 +65,7 @@ class SymbolTable:
     VarCount: Returns the number of variables of the given kind already defined in the current scope
 
         Parameters:
-            kind (STATIC, FIELD, ARG, or VAR)
+            kind (static, field, argument, or local)
 
         Returns:
             int
@@ -76,13 +76,13 @@ class SymbolTable:
 
     """
     KindOf: Returns the kind of the named identifier in the current scope
-        - If the identifier is unknown in the current scope, returns NONE
+        - If the identifier is unknown in the current scope, returns 'none'
     
         Parameters:
             name (String)
         
         Returns:
-            (STATIC, FIELD, ARG, VAR, NONE)
+            (static, field, argument, local, none)
     """
     def KindOf(self, name: str) -> str:
         if self.subroutineScope and name in self.subroutineScope:
@@ -90,7 +90,8 @@ class SymbolTable:
         elif name in self.classScope:
             return self.classScope[name]['kind']
         else:
-            return 'NONE'
+            return 'none'
+
 
     """
     TypeOf: Returns the type of the named identifier in the current scope
