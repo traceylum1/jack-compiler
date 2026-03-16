@@ -18,7 +18,7 @@ class CompilationEngine:
 
         self.tokenizer = tokenizer
         self.symbolTable = SymbolTable()
-        self.vmWriter = VMWriter()
+        self.vmWriter = VMWriter(filePath=filePath)
 
         if len(tokenizer.lines) == 0:
             print('File empty. Nothing to compile')
@@ -33,6 +33,8 @@ class CompilationEngine:
         with open(xmlFilePath, 'w') as file:
             print('Writing to new file: ', xmlFilePath)
             file.write(xmlOutput)
+        
+        self.vmWriter.close()
     
     """
     compileClass: Compiles a complete class (called immediately after constructor)
@@ -711,6 +713,8 @@ class CompilationEngine:
                     raise RuntimeError('; expected in compileReturn')
         else:
             raise RuntimeError('Unexpected end of input')
+        
+        self.vmWriter.writeReturn()
 
         self.xmlLines.append('</returnStatement>')
 
@@ -725,19 +729,19 @@ class CompilationEngine:
         while True:
             tokenType = self.tokenizer.tokenType()
             if tokenType == 'SYMBOL':
-                # Exit loop if end of expression with comma, closing parenthesis for expression list, closing square bracket, semicolon, or assignment
+                # Exit loop if end of expression with comma, closing parenthesis for expression list, closing square bracket, semicolon
                 token = self.tokenizer.symbol()
                 if token == ',' or token == ')' or token == ']' or token == ';':
                     break
-                # Get operators
+                # Get operators / symbols
                 elif token == '<':
                     self.xmlLines.append('<symbol> ' + '&lt;' + ' </symbol>')
-                    self.vmWriter.writeArithmetic('lt') # Write lt
+                    self.vmWriter.writeArithmetic('LT') # Write LT
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '>':
                     self.xmlLines.append('<symbol> ' + '&gt;' + ' </symbol>')
-                    self.vmWriter.writeArithmetic('gt') # Write gt
+                    self.vmWriter.writeArithmetic('GT') # Write GT
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '"':
@@ -746,24 +750,46 @@ class CompilationEngine:
                         self.tokenizer.advance()
                 elif token == '&':
                     self.xmlLines.append('<symbol> ' + '&amp;' + ' </symbol>')
+                    self.vmWriter.writeArithmetic('AND') # Write AND
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
+                elif token == '|':
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    self.vmWriter.writeArithmetic('OR') # Write OR
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
+                elif token == '+':
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    self.vmWriter.writeArithmetic('ADD') # Write ADD
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '-':
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    self.vmWriter.writeArithmetic('SUB') # Write SUB
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
-                    self.compileTerm()
+                elif token == '*':
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    self.vmWriter.writeCall('Math.multiply', 2) # Call Math.multiply
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
+                elif token == '/':
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    self.vmWriter.writeCall('Math.divide', 2) # Call Math.divide
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
+                
                 # Unary op term
                 elif token == '~':
                     self.compileTerm()
                 # '('expression')'
                 elif token == '(':
                     self.compileTerm()
-                # Other operators
-                else:
-                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
+                # # Other operators
+                # else:
+                #     self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                #     if self.tokenizer.hasMoreTokens():
+                #         self.tokenizer.advance()
             # Identifier, keyword, integer const, string const
             else:
                 self.compileTerm()
@@ -883,8 +909,10 @@ class CompilationEngine:
 
 
         elif tokenType == 'INT_CONST':
+            intValToken = self.tokenizer.intVal()
+            self.vmWriter.writePush('CONSTANT', int(intValToken))
             self.xmlLines.append('<term>')
-            self.xmlLines.append('<integerConstant> ' + self.tokenizer.intVal() + ' </integerConstant>')
+            self.xmlLines.append('<integerConstant> ' + intValToken + ' </integerConstant>')
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
         elif tokenType == 'STRING_CONST':
