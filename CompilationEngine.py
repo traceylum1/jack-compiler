@@ -725,6 +725,7 @@ class CompilationEngine:
         self.xmlLines.append('<expression>')
         
         self.compileTerm()
+        operator = ''
 
         while True:
             tokenType = self.tokenizer.tokenType()
@@ -735,13 +736,13 @@ class CompilationEngine:
                     break
                 # Get operators / symbols
                 elif token == '<':
+                    operator = 'LT'
                     self.xmlLines.append('<symbol> ' + '&lt;' + ' </symbol>')
-                    self.vmWriter.writeArithmetic('LT') # Write LT
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '>':
+                    operator = 'GT'
                     self.xmlLines.append('<symbol> ' + '&gt;' + ' </symbol>')
-                    self.vmWriter.writeArithmetic('GT') # Write GT
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '"':
@@ -749,33 +750,33 @@ class CompilationEngine:
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '&':
+                    operator = 'AND'
                     self.xmlLines.append('<symbol> ' + '&amp;' + ' </symbol>')
-                    self.vmWriter.writeArithmetic('AND') # Write AND
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '|':
+                    operator = 'OR'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    self.vmWriter.writeArithmetic('OR') # Write OR
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '+':
+                    operator = 'ADD'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    self.vmWriter.writeArithmetic('ADD') # Write ADD
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '-':
+                    operator = 'SUB'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    self.vmWriter.writeArithmetic('SUB') # Write SUB
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '*':
+                    operator = 'MULTIPLY'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    self.vmWriter.writeCall('Math.multiply', 2) # Call Math.multiply
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 elif token == '/':
+                    operator = 'DIVIDE'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    self.vmWriter.writeCall('Math.divide', 2) # Call Math.divide
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 
@@ -790,9 +791,18 @@ class CompilationEngine:
                 #     self.xmlLines.append('<symbol> ' + token + ' </symbol>')
                 #     if self.tokenizer.hasMoreTokens():
                 #         self.tokenizer.advance()
+
             # Identifier, keyword, integer const, string const
             else:
                 self.compileTerm()
+            
+        match operator:
+            case 'MULTIPLY':
+                self.vmWriter.writeCall('Math.multiply', 2) # Call Math.multiply
+            case 'DIVIDE':
+                self.vmWriter.writeCall('Math.divide', 2) # Call Math.divide
+            case _:
+                self.vmWriter.writeArithmetic(operator)
 
         self.xmlLines.append('</expression>')
 
