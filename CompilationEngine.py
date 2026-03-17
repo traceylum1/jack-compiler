@@ -170,23 +170,18 @@ class CompilationEngine:
     """
     compileSubroutineDec: Compiles a complete method, function, or constructor
 
-        - Needs to differentiate between function, method, constructor calls
-        - function: not called on any object (nArgs)
-        - method: called on an object (nArgs + THIS)
-        - constructor: call malloc to get block of nVar size, store in pointer 0
-            PROCESS: 
-                1. call malloc with size
-                2. malloc find n size block (initialize all to 0?)
-                3. malloc returns base memory addr
-                4. store pointer to new object in local/field var
-                5. to access object, set pointer 0 to object
-                6. use THIS 0-(nVar-1) to access object's local vars
+        - For void subroutine, push const 0 before returning
     """
     def compileSubroutineDec(self):
         self.xmlLines.append('<subroutineDec>')
 
         # Create new subroutine scope symbol table
         self.symbolTable.startSubroutine()
+
+        # Store for VM writer
+        funcType = ''
+        returnType = ''
+
 
         # Get function/method/constructor keyword
         funcType = self.tokenizer.keyWord()
@@ -197,7 +192,7 @@ class CompilationEngine:
                 pass
             case 'constructor':
                 pass
-            
+
         self.xmlLines.append('<keyword> ' + funcType + ' </keyword>')
 
         # Get return type keyword or class
@@ -205,13 +200,15 @@ class CompilationEngine:
             self.tokenizer.advance()
 
             if self.tokenizer.tokenType() == 'KEYWORD':
-                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+                returnType = self.tokenizer.keyWord()
+                self.xmlLines.append('<keyword> ' + returnType + ' </keyword>')
 
             elif self.tokenizer.tokenType() == 'IDENTIFIER':
+                returnType = self.tokenizer.keyWord()
 
                 self.xmlLines.append('<identifier>')
                 self.xmlLines.append('<using>')
-                self.xmlLines.append('<identifierName> ' + self.tokenizer.identifier() + ' </identifierName>')
+                self.xmlLines.append('<identifierName> ' + returnType + ' </identifierName>')
                 self.xmlLines.append('<category> ' + 'className' + ' </category>')
                 self.xmlLines.append('</using>')
                 self.xmlLines.append('</identifier>')
@@ -663,6 +660,9 @@ class CompilationEngine:
 
     """
     compileDo: Compiles a do statement
+
+        - Calls a void function/method (never constructor bc it returns base addr)
+        - m
     """
     def compileDo(self):
         self.xmlLines.append('<doStatement>')
@@ -762,8 +762,7 @@ class CompilationEngine:
             functionName = subroutineName
         
         self.vmWriter.writeCall(functionName, argCount)
-        self.vmWriter.writePop('TEMP', 0)
-        self.vmWriter.writePush('CONSTANT', 0)
+        self.vmWriter.writePop('TEMP', 0)   # Discard default returned 0
 
         self.xmlLines.append('</doStatement>')
 
@@ -891,6 +890,19 @@ class CompilationEngine:
         - A single look-ahead token, which may be one of "[", "(", or "." suffices to distinguish between the possibilities.
         - Any other token is not part of this term and should not be advanced over
         - Terms: int const, str const, keyword const, varName, varName'['expression']', subroutine call, '('expression')', unary op term
+
+        SUBROUTINE CALL:
+            - Needs to differentiate between function, method, constructor calls
+            - function: not called on any object (nArgs)
+            - method: called on an object (nArgs + THIS)
+            - constructor: call malloc to get block of nVar size, store in pointer 0
+                PROCESS: 
+                    1. call malloc with size
+                    2. malloc find n size block (initialize all to 0?)
+                    3. malloc returns base memory addr
+                    4. store pointer to new object in local/field var
+                    5. to access object, set pointer 0 to object
+                    6. use THIS 0-(nVar-1) to access object's local vars
     """
     def compileTerm(self):
 
