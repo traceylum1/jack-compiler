@@ -169,6 +169,18 @@ class CompilationEngine:
         
     """
     compileSubroutineDec: Compiles a complete method, function, or constructor
+
+        - Needs to differentiate between function, method, constructor calls
+        - function: not called on any object (nArgs)
+        - method: called on an object (nArgs + THIS)
+        - constructor: call malloc to get block of nVar size, store in pointer 0
+            PROCESS: 
+                1. call malloc with size
+                2. malloc find n size block (initialize all to 0?)
+                3. malloc returns base memory addr
+                4. store pointer to new object in local/field var
+                5. to access object, set pointer 0 to object
+                6. use THIS 0-(nVar-1) to access object's local vars
     """
     def compileSubroutineDec(self):
         self.xmlLines.append('<subroutineDec>')
@@ -177,7 +189,16 @@ class CompilationEngine:
         self.symbolTable.startSubroutine()
 
         # Get function/method/constructor keyword
-        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+        funcType = self.tokenizer.keyWord()
+        match funcType:
+            case 'function':
+                pass
+            case 'method':
+                pass
+            case 'constructor':
+                pass
+            
+        self.xmlLines.append('<keyword> ' + funcType + ' </keyword>')
 
         # Get return type keyword or class
         if self.tokenizer.hasMoreTokens():
