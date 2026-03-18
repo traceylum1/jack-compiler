@@ -20,6 +20,7 @@ class CompilationEngine:
         self.symbolTable = SymbolTable()
         self.vmWriter = VMWriter(filePath=filePath)
 
+        self.className = ''
         self.currSubroutineName = ''
 
         if len(tokenizer.lines) == 0:
@@ -58,10 +59,11 @@ class CompilationEngine:
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'IDENTIFIER':
+                self.className = self.tokenizer.identifier()
 
                 self.xmlLines.append('<identifier>')
                 self.xmlLines.append('<defining>')
-                self.xmlLines.append('<identifierName> ' + self.tokenizer.identifier() + ' </identifierName>')
+                self.xmlLines.append('<identifierName> ' + self.className + ' </identifierName>')
                 self.xmlLines.append('<category> ' + 'className' + ' </category>')
                 self.xmlLines.append('</defining>')
                 self.xmlLines.append('</identifier>')
@@ -893,16 +895,36 @@ class CompilationEngine:
 
         SUBROUTINE CALL:
             - Needs to differentiate between function, method, constructor calls
-            - function: not called on any object (nArgs)
-            - method: called on an object (nArgs + THIS)
-            - constructor: call malloc to get block of nVar size, store in pointer 0
+            - FUNCTION: not called on any object (nArgs) -- ie: Output.printInt(1), move()
+                PROCESS:
+                    1. ALWAYS contains 2 identifiers, check if first one is in symbol table
+                        a. if so, it is a METHOD on target object -- handle as METHOD
+                        b. if not, it is a FUNCTION (from current or other class)
+                    2. push arguments to stack
+                    3. call function (call className.subroutineName nArgs)
+
+            - METHOD: Called on an object (nArgs + THIS) -- ie: object.erase() OR move()
+                PROCESS:
+                    1. check symbol table to see if object is declared -- identifierName: { type: className, kind: 'local', index: int }
+                        a. if so, it is a METHOD on target object -- handle as METHOD
+                        b. if not, it is a FUNCTION call
+                    2. push object to stack (pointer 0)
+                    3. push arguments to stack
+                    4. call method (call (className.)?subroutineName nArgs+1)
+
+            - CONSTRUCTOR: get block of nVar size, store in pointer 0
                 PROCESS: 
-                    1. call malloc with size
+                    1. call malloc with size nVar
                     2. malloc find n size block (initialize all to 0?)
                     3. malloc returns base memory addr
                     4. store pointer to new object in local/field var
                     5. to access object, set pointer 0 to object
                     6. use THIS 0-(nVar-1) to access object's local vars
+
+        ARRAY INDEX:
+            - ALWAYS work with THAT 0 -- necessary to index with identifiers too. ie works for both arr[x] and arr[5]
+            - set pointer 1 to array pointer
+            - offset base address by index (keep in THAT 0)
     """
     def compileTerm(self):
 
