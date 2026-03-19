@@ -396,7 +396,7 @@ class CompilationEngine:
 
         # No local variables
         if self.tokenizer.keyWord() != 'var':
-            self.vmWriter.writeFunction(self.currSubroutineName, 0)
+            self.vmWriter.writeFunction(f"{self.className}.{self.currSubroutineName}", 0)
             return
 
         self.xmlLines.append('<varDec>')
@@ -845,6 +845,11 @@ class CompilationEngine:
                         self.tokenizer.advance()
                 elif token == '-':
                     operator = 'SUB'
+                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    if self.tokenizer.hasMoreTokens():
+                        self.tokenizer.advance()
+                elif token == '=':
+                    operator = 'EQ'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()

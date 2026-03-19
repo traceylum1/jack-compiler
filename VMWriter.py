@@ -81,6 +81,8 @@ class VMWriter:
                 self.vmCode.append('add')
             case 'SUB':
                 self.vmCode.append('sub')
+            case 'EQ':
+                self.vmCode.append('eq')
 
 
     """
