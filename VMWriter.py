@@ -13,54 +13,18 @@ class VMWriter:
 
     """
     writePush: Writes a VM push command
-        - segment: CONSTANT, ARGUMENT, LOCAL, STATIC, THIS, THAT, POINTER, TEMP
+        - segment: CONSTANT, ARGUMENT, LOCAL, STATIC, THIS, THAT, POINTER, TEMP -- changed to lowercase args
     """
     def writePush(self, segment: str, index: int) -> None:
-        vmSegment = ''
-        match segment:
-            case 'CONSTANT':
-                vmSegment = 'constant'
-            case 'ARGUMENT':
-                vmSegment = 'argument'
-            case 'LOCAL':
-                vmSegment = 'local'
-            case 'STATIC':
-                vmSegment = 'static'
-            case 'THIS':
-                vmSegment = 'this'
-            case 'THAT':
-                vmSegment = 'that'
-            case 'POINTER':
-                vmSegment = 'pointer'
-            case 'TEMP':
-                vmSegment = 'temp'
-        self.vmCode.append(f'push {vmSegment} {str(index)}')
+        self.vmCode.append(f'push {segment} {str(index)}')
 
 
     """
     writePop: Writes a VM pop command
-        - segment: ARGUMENT, LOCAL, STATIC, THIS, THAT, POINTER, TEMP
+        - segment: ARGUMENT, LOCAL, STATIC, THIS, THAT, POINTER, TEMP -- changed to lowercase args
     """
     def writePop(self, segment: str, index: int) -> None:
-        vmSegment = ''
-        match segment:
-            case 'CONSTANT':
-                vmSegment = 'constant'
-            case 'ARGUMENT':
-                vmSegment = 'argument'
-            case 'LOCAL':
-                vmSegment = 'local'
-            case 'STATIC':
-                vmSegment = 'static'
-            case 'THIS':
-                vmSegment = 'this'
-            case 'THAT':
-                vmSegment = 'that'
-            case 'POINTER':
-                vmSegment = 'pointer'
-            case 'TEMP':
-                vmSegment = 'temp'
-        self.vmCode.append(f'pop {vmSegment} {str(index)}')
+        self.vmCode.append(f'pop {segment} {str(index)}')
 
 
     """
@@ -83,6 +47,8 @@ class VMWriter:
                 self.vmCode.append('sub')
             case 'EQ':
                 self.vmCode.append('eq')
+            case 'NEG':
+                self.vmCode.append('neg')
 
 
     """

@@ -48,18 +48,21 @@ class SymbolTable:
             type (String)
             kind (static, field, argument, or local)
     """
-    def define(self, name: str, type: str, kind: str) -> None:
+    def define(self, subroutineName: str, name: str, type: str, kind: str) -> None:
+        print('subroutine', subroutineName)
+        print(kind, name, self.indices[kind])
         match kind:
             case 'static' | 'field':
                 if name in self.classScope:
-                    raise RuntimeError('Class variable already defined')
+                    raise RuntimeError(f'Class variable already defined - {name}')
                 self.classScope[name] = {'type': type, 'kind': kind, 'index': self.VarCount(kind)}
             case 'argument' | 'local':
                 if name in self.subroutineScope:
-                    raise RuntimeError('Subroutine variable already defined')
+                    raise RuntimeError(f'Subroutine variable already defined - {name}')
                 self.subroutineScope[name] = {'type': type, 'kind': kind, 'index': self.VarCount(kind)}
 
         self.indices[kind] += 1
+
 
     """
     VarCount: Returns the number of variables of the given kind already defined in the current scope
@@ -126,3 +129,6 @@ class SymbolTable:
             return self.classScope[name]['index']
         else:
             raise Exception('Identifier not declared')
+
+    def isDefined(self, name: str) -> bool:
+        return name in self.subroutineScope
