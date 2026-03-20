@@ -22,6 +22,7 @@ class CompilationEngine:
 
         self.className = ''
         self.currSubroutineName = ''
+        self.currSubroutineReturnType = ''
 
         if len(tokenizer.lines) == 0:
             print('File empty. Nothing to compile')
@@ -182,8 +183,6 @@ class CompilationEngine:
 
         # Store for VM writer
         funcType = ''
-        returnType = ''
-
 
         # Get function/method/constructor keyword
         funcType = self.tokenizer.keyWord()
@@ -202,15 +201,15 @@ class CompilationEngine:
             self.tokenizer.advance()
 
             if self.tokenizer.tokenType() == 'KEYWORD':
-                returnType = self.tokenizer.keyWord()
-                self.xmlLines.append('<keyword> ' + returnType + ' </keyword>')
+                self.currSubroutineReturnType = self.tokenizer.keyWord()
+                self.xmlLines.append('<keyword> ' + self.currSubroutineReturnType + ' </keyword>')
 
             elif self.tokenizer.tokenType() == 'IDENTIFIER':
-                returnType = self.tokenizer.keyWord()
+                self.currSubroutineReturnType = self.tokenizer.keyWord()
 
                 self.xmlLines.append('<identifier>')
                 self.xmlLines.append('<using>')
-                self.xmlLines.append('<identifierName> ' + returnType + ' </identifierName>')
+                self.xmlLines.append('<identifierName> ' + self.currSubroutineReturnType + ' </identifierName>')
                 self.xmlLines.append('<category> ' + 'className' + ' </category>')
                 self.xmlLines.append('</using>')
                 self.xmlLines.append('</identifier>')
@@ -380,7 +379,7 @@ class CompilationEngine:
             elif token == 'do':
                 self.compileDo()
             elif token == 'return': 
-                self.compileReturn()
+                self.compileReturn(self.currSubroutineReturnType == 'void')
             else:
                 break
             if self.tokenizer.hasMoreTokens():
@@ -469,6 +468,11 @@ class CompilationEngine:
     def compileLet(self):
         self.xmlLines.append('<letStatement>')
         
+        # Store for VM writer
+        currToken = ''
+        currTokenKind = ''
+        currTokenIdx = ''
+
         # Get let keyword
         self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
@@ -481,6 +485,9 @@ class CompilationEngine:
         # Get identifier -- varName('['expression']')?
         if self.tokenizer.tokenType() == 'IDENTIFIER':
             currToken = self.tokenizer.identifier()
+            currTokenKind = self.symbolTable.KindOf(currToken)
+            currTokenIdx = self.symbolTable.IndexOf(currToken)
+
         else:
             raise RuntimeError('Identifier expected in compileLet')
 
@@ -488,8 +495,8 @@ class CompilationEngine:
         self.xmlLines.append('<using>')
 
         self.xmlLines.append('<identifierName> ' + currToken + ' </identifierName>')
-        self.xmlLines.append('<category> ' + self.symbolTable.KindOf(currToken) + ' </category>')
-        self.xmlLines.append('<index> ' + str(self.symbolTable.IndexOf(currToken)) + ' </index>')
+        self.xmlLines.append('<category> ' + currTokenKind + ' </category>')
+        self.xmlLines.append('<index> ' + str(currTokenIdx) + ' </index>')
         
         self.xmlLines.append('</using>')
         self.xmlLines.append('</identifier>')
@@ -529,6 +536,8 @@ class CompilationEngine:
             self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         else:
             raise RuntimeError('Unexpected end of input')
+
+        self.vmWriter.writePop(currTokenKind, currTokenIdx)
 
         self.xmlLines.append('</letStatement>')
 
@@ -774,7 +783,7 @@ class CompilationEngine:
     """
     compileReturn: Compiles a return statement
     """
-    def compileReturn(self):
+    def compileReturn(self, isVoid):
         self.xmlLines.append('<returnStatement>')
 
         # Get return keyword
@@ -795,6 +804,9 @@ class CompilationEngine:
         else:
             raise RuntimeError('Unexpected end of input')
         
+        if isVoid:
+            self.vmWriter.writePush('constant', 0)
+
         self.vmWriter.writeReturn()
 
         self.xmlLines.append('</returnStatement>')
