@@ -48,9 +48,7 @@ class SymbolTable:
             type (String)
             kind (static, field, argument, or local)
     """
-    def define(self, subroutineName: str, name: str, type: str, kind: str) -> None:
-        print('subroutine', subroutineName)
-        print(kind, name, self.indices[kind])
+    def define(self, name: str, type: str, kind: str) -> None:
         match kind:
             case 'static' | 'field':
                 if name in self.classScope:

@@ -380,12 +380,12 @@ class CompilationEngine:
                 self.compileLet()
             elif token == 'if':
                 self.compileIf()
-                continue
+                continue        # Advanced in compileIf to check for else statement
             elif token == 'while':
                 self.compileWhile()
             elif token == 'do':
                 self.compileDo()
-            elif token == 'return': 
+            elif token == 'return':
                 self.compileReturn(self.currSubroutineReturnType == 'void')
             else:
                 break
@@ -641,8 +641,12 @@ class CompilationEngine:
                         # Get closing curly bracket for else conditional statements
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
             
-            self.vmWriter.writeLabel(label_false)
-            
+            else:
+                self.vmWriter.writeLabel(label_false)
+
+            if self.tokenizer.hasMoreTokens():
+                self.tokenizer.advance()
+
         else:
             raise RuntimeError('Unexpected end of input')
 
@@ -668,6 +672,13 @@ class CompilationEngine:
         else:
             raise RuntimeError('Unexpected end of input')
         
+        # LABELS
+        label_while_start = f'WHILE_START_{str(self.currWhileIdx)}'
+        label_while_end = f'WHILE_END_{str(self.currWhileIdx)}'
+        self.currWhileIdx += 1
+
+        self.vmWriter.writeLabel(label_while_start)
+
         # Get expression for while conditional
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
@@ -678,6 +689,9 @@ class CompilationEngine:
             self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         else:
             raise RuntimeError(') expected in compileWhile')
+
+        self.vmWriter.writeArithmetic('NOT')
+        self.vmWriter.writeIf(label_while_end)
 
         # Get opening curly braces for while statements
         if self.tokenizer.hasMoreTokens():
@@ -696,6 +710,9 @@ class CompilationEngine:
 
         # Get closing curly bracket for while statements
         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+
+        self.vmWriter.writeGoto(label_while_start)
+        self.vmWriter.writeLabel(label_while_end)
         
         self.xmlLines.append('</whileStatement>')
 
