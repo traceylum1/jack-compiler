@@ -23,6 +23,9 @@ class CompilationEngine:
         self.className = ''
         self.currSubroutineName = ''
         self.currSubroutineReturnType = ''
+        self.currIfIdx = 0
+        self.currWhileIdx = 0
+
 
         if len(tokenizer.lines) == 0:
             print('File empty. Nothing to compile')
@@ -180,6 +183,10 @@ class CompilationEngine:
 
         # Create new subroutine scope symbol table
         self.symbolTable.startSubroutine()
+
+        # Reset label indexes
+        self.currIfIdx = 0
+        self.currWhileIdx = 0
 
         # Store for VM writer
         funcType = ''
@@ -572,6 +579,18 @@ class CompilationEngine:
             self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         else:
             raise RuntimeError(') expected')
+        
+        # LABELS
+        label_true = f'IF_TRUE_{str(self.currIfIdx)}'
+        label_false = f'IF_FALSE_{str(self.currIfIdx)}'
+        label_end = f'IF_END_{str(self.currIfIdx)}'
+
+        self.vmWriter.writeIf(label_true)
+        self.vmWriter.writeGoto(label_false)
+        self.vmWriter.writeLabel(label_true)
+
+        self.currIfIdx += 1
+
 
         # Get opening curly bracket for if conditional statements
         if self.tokenizer.hasMoreTokens():
@@ -600,6 +619,10 @@ class CompilationEngine:
 
             if self.tokenizer.tokenType() == 'KEYWORD' and self.tokenizer.keyWord() == 'else':
                 self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+
+                # LABELS
+                self.vmWriter.writeGoto(label_end)
+                self.vmWriter.writeLabel(label_false)
                 
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
@@ -613,8 +636,13 @@ class CompilationEngine:
                             self.tokenizer.advance()
                         self.compileStatements()
 
+                        self.vmWriter.writeLabel(label_end)
+
                         # Get closing curly bracket for else conditional statements
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            
+            self.vmWriter.writeLabel(label_false)
+            
         else:
             raise RuntimeError('Unexpected end of input')
 
@@ -1116,7 +1144,7 @@ class CompilationEngine:
                     self.tokenizer.advance()
             elif token == '~':
                 self.compileTerm()
-                self.vmWriter.writeArithmetic('NEG')
+                self.vmWriter.writeArithmetic('NOT')
             elif token == '-':
                 self.compileTerm()
                 self.vmWriter.writeArithmetic('NEG')

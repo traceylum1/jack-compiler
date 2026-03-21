@@ -49,26 +49,28 @@ class VMWriter:
                 self.vmCode.append('eq')
             case 'NEG':
                 self.vmCode.append('neg')
+            case 'NOT':
+                self.vmCode.append('not')
 
 
     """
     writeLabel: Writes a VM label command
     """
     def writeLabel(self, label: str) -> None:
-        pass
+        self.vmCode.append(f'label {label}')
 
 
     """
     writeGoto: Writes a VM goto command
     """
     def writeGoto(self, label: str) -> None:
-        pass
+        self.vmCode.append(f'goto {label}')
 
     """
     writeIf: Writes a VM if-goto command
     """
     def writeIf(self, label: str) -> None:
-        pass
+        self.vmCode.append(f'if-goto {label}')
 
 
     """
