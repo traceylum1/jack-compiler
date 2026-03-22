@@ -16,7 +16,12 @@ class VMWriter:
         - segment: CONSTANT, ARGUMENT, LOCAL, STATIC, THIS, THAT, POINTER, TEMP -- changed to lowercase args
     """
     def writePush(self, segment: str, index: int) -> None:
-        self.vmCode.append(f'push {segment} {str(index)}')
+        vmSegment = ''
+        if segment == 'field':
+            vmSegment = 'this'
+        else:
+            vmSegment = segment
+        self.vmCode.append(f'push {vmSegment} {str(index)}')
 
 
     """
@@ -24,7 +29,12 @@ class VMWriter:
         - segment: ARGUMENT, LOCAL, STATIC, THIS, THAT, POINTER, TEMP -- changed to lowercase args
     """
     def writePop(self, segment: str, index: int) -> None:
-        self.vmCode.append(f'pop {segment} {str(index)}')
+        vmSegment = ''
+        if segment == 'field':
+            vmSegment = 'this'
+        else:
+            vmSegment = segment
+        self.vmCode.append(f'pop {vmSegment} {str(index)}')
 
 
     """

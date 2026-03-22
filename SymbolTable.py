@@ -129,4 +129,4 @@ class SymbolTable:
             raise Exception('Identifier not declared')
 
     def isDefined(self, name: str) -> bool:
-        return name in self.subroutineScope
+        return name in self.subroutineScope or name in self.classScope
