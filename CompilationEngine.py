@@ -264,13 +264,17 @@ class CompilationEngine:
     """
     compileParameterList: Compiles a (possible empty) parameter list. Does not handle the enclosing "()"
     """
-    def compileParameterList(self) -> int:
+    def compileParameterList(self):
         self.xmlLines.append('<parameterList>')
 
         # Store for symbol table
         kind = 'argument'
         type = ''
         varName = ''
+
+        # Set first argument as this object -- placeholder so the running index is correct for next parameters
+        if self.currSubroutineType == 'method':
+            self.symbolTable.define('this', self.className, 'argument')
 
         # Empty parameter list
         if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ')':
@@ -356,6 +360,10 @@ class CompilationEngine:
                 objSize = self.symbolTable.VarCount('field')
                 self.vmWriter.writePush('constant', objSize)
                 self.vmWriter.writeCall('Memory.alloc', 1)
+                self.vmWriter.writePop('pointer', 0)
+            # Set pointer to first argument which is the object
+            elif self.currSubroutineType == 'method':
+                self.vmWriter.writePush('argument', 0)
                 self.vmWriter.writePop('pointer', 0)
 
             self.compileStatements()
@@ -464,8 +472,13 @@ class CompilationEngine:
                     raise RuntimeError('Identifier or symbol expected in compileVarDec')
                 
             self.xmlLines.append('</varDec>')
-                
-        self.vmWriter.writeFunction(f"{self.className}.{self.currSubroutineName}", str(self.symbolTable.VarCount('local')))
+        
+        nVars = self.symbolTable.VarCount('local')
+
+        if self.currSubroutineType == 'method':
+            nVars += 1
+
+        self.vmWriter.writeFunction(f"{self.className}.{self.currSubroutineName}", nVars)
         
 
     """
@@ -519,7 +532,18 @@ class CompilationEngine:
                 self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
+                
+                # Push array base addr to stack
+                self.vmWriter.writePush(currTokenKind, currTokenIdx)
                 self.compileExpression()
+
+                # Add the offset of index to the base address and set to THAT
+                self.vmWriter.writeArithmetic('ADD')
+                self.vmWriter.writePop('pointer', 1)
+
+                currTokenKind = 'that'
+                currTokenIdx = 0
+
                 # Get closing square bracket
                 if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ']':
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
@@ -527,6 +551,8 @@ class CompilationEngine:
                         self.tokenizer.advance()
                 else:
                     raise RuntimeError('] expected in compileLet')
+                
+            
     
         # Get assignment operator
         if self.tokenizer.tokenType() == 'SYMBOL':
@@ -750,6 +776,9 @@ class CompilationEngine:
                 # currToken is subroutine name
                 if nextToken == '(':
                     subroutineName = currToken
+                    # Unqualified subroutine call in current class: push this first.
+                    self.vmWriter.writePush('pointer', 0)
+                    nArgs += 1
 
                     self.xmlLines.append('<identifier>')
                     self.xmlLines.append('<using>')
@@ -762,7 +791,7 @@ class CompilationEngine:
 
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
-                    self.compileExpressionList()
+                    nArgs += self.compileExpressionList()
                     # Get closing parenthesis of expression list
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                     if self.tokenizer.hasMoreTokens():
@@ -834,8 +863,6 @@ class CompilationEngine:
 
         # Method call on current class
         else:
-            self.vmWriter.writePush('pointer', 0)
-            nArgs += 1
             functionName = self.className + '.' + subroutineName
         
         self.vmWriter.writeCall(functionName, nArgs)
@@ -882,7 +909,6 @@ class CompilationEngine:
         self.xmlLines.append('<expression>')
         
         self.compileTerm()
-        operator = ''
 
         while True:
             tokenType = self.tokenizer.tokenType()
@@ -891,80 +917,55 @@ class CompilationEngine:
                 token = self.tokenizer.symbol()
                 if token == ',' or token == ')' or token == ']' or token == ';':
                     break
+                
+                operator = ''
                 # Get operators / symbols
-                elif token == '<':
+                if token == '<':
                     operator = 'LT'
                     self.xmlLines.append('<symbol> ' + '&lt;' + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
                 elif token == '>':
                     operator = 'GT'
                     self.xmlLines.append('<symbol> ' + '&gt;' + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
-                elif token == '"':
-                    self.xmlLines.append('<symbol> ' + '&quot;' + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
                 elif token == '&':
                     operator = 'AND'
                     self.xmlLines.append('<symbol> ' + '&amp;' + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
                 elif token == '|':
                     operator = 'OR'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
                 elif token == '+':
                     operator = 'ADD'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
                 elif token == '-':
                     operator = 'SUB'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
                 elif token == '=':
                     operator = 'EQ'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
                 elif token == '*':
                     operator = 'MULTIPLY'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
                 elif token == '/':
                     operator = 'DIVIDE'
                     self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-                    if self.tokenizer.hasMoreTokens():
-                        self.tokenizer.advance()
-                
-                # Unary op term
-                elif token == '~':
-                    self.compileTerm()
-                # '('expression')'
-                elif token == '(':
-                    self.compileTerm()
-                # # Other operators
-                # else:
-                #     self.xmlLines.append('<symbol> ' + token + ' </symbol>')
-                #     if self.tokenizer.hasMoreTokens():
-                #         self.tokenizer.advance()
+                else:
+                    raise RuntimeError(f'Invalid expression operator: {token}')
 
-            # Identifier, keyword, integer const, string const
-            else:
+                if self.tokenizer.hasMoreTokens():
+                    self.tokenizer.advance()
+                else:
+                    raise RuntimeError('Unexpected end of input in compileExpression')
+
                 self.compileTerm()
-            
-        match operator:
-            case 'MULTIPLY':
-                self.vmWriter.writeCall('Math.multiply', 2) # Call Math.multiply
-            case 'DIVIDE':
-                self.vmWriter.writeCall('Math.divide', 2) # Call Math.divide
-            case _:
-                self.vmWriter.writeArithmetic(operator)
+
+                match operator:
+                    case 'MULTIPLY':
+                        self.vmWriter.writeCall('Math.multiply', 2) # Call Math.multiply
+                    case 'DIVIDE':
+                        self.vmWriter.writeCall('Math.divide', 2) # Call Math.divide
+                    case _:
+                        self.vmWriter.writeArithmetic(operator)
+            else:
+                break
 
         self.xmlLines.append('</expression>')
 
@@ -1030,10 +1031,22 @@ class CompilationEngine:
                         self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
+
+                        # Push array base addr to stack
+                        currTokenKind = self.symbolTable.KindOf(currToken)
+                        currTokenIdx = self.symbolTable.IndexOf(currToken)
+                        self.vmWriter.writePush(currTokenKind, currTokenIdx)
+
                         self.compileExpression()
                         self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
+
+                        # Add the offset of index to the base address and set to THAT
+                        self.vmWriter.writeArithmetic('ADD')
+                        self.vmWriter.writePop('pointer', 1)
+
+                        self.vmWriter.writePush('that', 0)
 
                     # METHOD of CURRENT CLASS
                     elif nextToken == '(':
@@ -1053,7 +1066,7 @@ class CompilationEngine:
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
                         
-                        self.vmWriter.writeCall(currToken, nArgs)
+                        self.vmWriter.writeCall(f'{self.className}.{currToken}', nArgs)
 
                     # METHOD OR FUNCTION OF OTHER CLASS
                     # subroutineName'('expressionList')'
@@ -1066,7 +1079,7 @@ class CompilationEngine:
                         if self.symbolTable.isDefined(currToken):
                             currTokenKind = self.symbolTable.KindOf(currToken)
                             currTokenIdx = self.symbolTable.IndexOf(currToken)
-                            className = self.symbolTable.TypeOf(currTokenIdx)
+                            className = self.symbolTable.TypeOf(currToken)
                             self.vmWriter.writePush(currTokenKind, currTokenIdx)
                             nArgs += 1
                         # Handle FUNCTION call
