@@ -6,15 +6,14 @@ from VMWriter import VMWriter
 CompilationEngine class
     - Takes the input from the tokenizer
     - Compiles the non-terminal tokens
-    - Outputs to .xml file
+    - Outputs to .vm file
 """
 
 class CompilationEngine:
     """
-    Constructor: Gets input from tokenizer and outputs xml
+    Constructor: Gets input from tokenizer and compiles VM code
     """
     def __init__(self, tokenizer:  JackTokenizer, filePath: str):
-        self.xmlLines = []
 
         self.tokenizer = tokenizer
         self.symbolTable = SymbolTable()
@@ -34,27 +33,18 @@ class CompilationEngine:
         
         self.compileClass()
 
-        xmlOutput = '\n'.join(self.xmlLines)
-
-        xmlFilePath = filePath.split('.')[0] + '.xml'
-        
-        with open(xmlFilePath, 'w') as file:
-            print('Writing to new file: ', xmlFilePath)
-            file.write(xmlOutput)
-        
         self.vmWriter.close()
     
     """
     compileClass: Compiles a complete class (called immediately after constructor)
     """
     def compileClass(self):
-        self.xmlLines.append('<class>')
 
         # Get class keyword
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'KEYWORD':
-                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
+                pass
             else:
                 raise RuntimeError('Keyword expected')
         else:
@@ -66,12 +56,6 @@ class CompilationEngine:
             if self.tokenizer.tokenType() == 'IDENTIFIER':
                 self.className = self.tokenizer.identifier()
 
-                self.xmlLines.append('<identifier>')
-                self.xmlLines.append('<defining>')
-                self.xmlLines.append('<identifierName> ' + self.className + ' </identifierName>')
-                self.xmlLines.append('<category> ' + 'className' + ' </category>')
-                self.xmlLines.append('</defining>')
-                self.xmlLines.append('</identifier>')
 
             else:
                 raise RuntimeError('Identifier expected')
@@ -82,7 +66,7 @@ class CompilationEngine:
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'SYMBOL':
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                pass
             else:
                 raise RuntimeError('{ expected')
         else:
@@ -105,14 +89,12 @@ class CompilationEngine:
                     self.compileSubroutineDec()
 
         if self.tokenizer.tokenType() == 'SYMBOL':
-            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
-        self.xmlLines.append('</class>')
+            pass
 
     """
     compileClassVarDec: Compiles a static variable declaration, or a field declaration
     """
     def compileClassVarDec(self):
-        self.xmlLines.append('<classVarDec>')
 
         # Store for symbol table
         kind = ''
@@ -121,23 +103,15 @@ class CompilationEngine:
 
         # Get field/static keyword
         kind = self.tokenizer.keyWord()
-        self.xmlLines.append('<keyword> ' + kind + ' </keyword>')
 
         # Get primitive type keyword or class identifier
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'KEYWORD':
                 type = self.tokenizer.keyWord()
-                self.xmlLines.append('<keyword> ' + type + ' </keyword>')
             elif self.tokenizer.tokenType() == 'IDENTIFIER':
                 type = self.tokenizer.identifier()
 
-                self.xmlLines.append('<identifier>')
-                self.xmlLines.append('<using>')
-                self.xmlLines.append('<identifierName> ' + type + ' </identifierName>')
-                self.xmlLines.append('<category> ' + 'className' + ' </category>')
-                self.xmlLines.append('</using>')
-                self.xmlLines.append('</identifier>')
         else:
             raise RuntimeError('Unexpected end of input')
 
@@ -151,28 +125,19 @@ class CompilationEngine:
                 # Update symbol table, get category and running index
                 self.symbolTable.define(varName, type, kind)
                 
-                self.xmlLines.append('<identifier>')
-                self.xmlLines.append('<defining>')
 
-                self.xmlLines.append('<identifierName> ' + varName + ' </identifierName>')
-                self.xmlLines.append('<category> ' + kind + ' </category>')
-                self.xmlLines.append('<index> ' + str(self.symbolTable.IndexOf(varName)) + ' </index>')
                 
-                self.xmlLines.append('</defining>')
-                self.xmlLines.append('</identifier>')
 
             elif self.tokenizer.tokenType() == 'SYMBOL':
                 token = self.tokenizer.symbol()
                 # End class var dec if semicolon reached
                 if token == ';':
-                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
                     break
                 elif token == ',':
-                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                    pass
             else:
                 raise RuntimeError('Identifier or symbol expected')
             
-        self.xmlLines.append('</classVarDec>')
         
     """
     compileSubroutineDec: Compiles a complete method, function, or constructor
@@ -180,7 +145,6 @@ class CompilationEngine:
         - For void subroutine, push const 0 before returning
     """
     def compileSubroutineDec(self):
-        self.xmlLines.append('<subroutineDec>')
 
         # Create new subroutine scope symbol table
         self.symbolTable.startSubroutine()
@@ -192,7 +156,6 @@ class CompilationEngine:
         # Get function/method/constructor keyword
         self.currSubroutineType = self.tokenizer.keyWord()
 
-        self.xmlLines.append('<keyword> ' + self.currSubroutineType + ' </keyword>')
 
         # Get return type keyword or class
         if self.tokenizer.hasMoreTokens():
@@ -200,17 +163,10 @@ class CompilationEngine:
 
             if self.tokenizer.tokenType() == 'KEYWORD':
                 self.currSubroutineReturnType = self.tokenizer.keyWord()
-                self.xmlLines.append('<keyword> ' + self.currSubroutineReturnType + ' </keyword>')
 
             elif self.tokenizer.tokenType() == 'IDENTIFIER':
                 self.currSubroutineReturnType = self.tokenizer.keyWord()
 
-                self.xmlLines.append('<identifier>')
-                self.xmlLines.append('<using>')
-                self.xmlLines.append('<identifierName> ' + self.currSubroutineReturnType + ' </identifierName>')
-                self.xmlLines.append('<category> ' + 'className' + ' </category>')
-                self.xmlLines.append('</using>')
-                self.xmlLines.append('</identifier>')
         else:
             raise RuntimeError('Unexpected end of input')
 
@@ -220,12 +176,6 @@ class CompilationEngine:
             if self.tokenizer.tokenType() == 'IDENTIFIER':
                 self.currSubroutineName = self.tokenizer.identifier()
 
-                self.xmlLines.append('<identifier>')
-                self.xmlLines.append('<defining>')
-                self.xmlLines.append('<identifierName> ' + self.currSubroutineName + ' </identifierName>')
-                self.xmlLines.append('<category> ' + 'subroutineName' + ' </category>')
-                self.xmlLines.append('</defining>')
-                self.xmlLines.append('</identifier>')
             else:
                 raise RuntimeError('Identifier expected')
         else:
@@ -235,7 +185,7 @@ class CompilationEngine:
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'SYMBOL':
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                pass
             else:
                 raise RuntimeError('( expected')
         else:
@@ -245,7 +195,6 @@ class CompilationEngine:
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             self.compileParameterList()
-            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         else:
             raise RuntimeError('Unexpected end of input')
         
@@ -259,13 +208,11 @@ class CompilationEngine:
         else:
             raise RuntimeError('Unexpected end of input')
 
-        self.xmlLines.append('</subroutineDec>')
 
     """
     compileParameterList: Compiles a (possible empty) parameter list. Does not handle the enclosing "()"
     """
     def compileParameterList(self):
-        self.xmlLines.append('<parameterList>')
 
         # Store for symbol table
         kind = 'argument'
@@ -278,7 +225,6 @@ class CompilationEngine:
 
         # Empty parameter list
         if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ')':
-            self.xmlLines.append('</parameterList>')
             return
 
         # Get parameter identifier(s)
@@ -290,14 +236,8 @@ class CompilationEngine:
             if tokenType == 'KEYWORD' or tokenType == 'IDENTIFIER':
                 if tokenType == 'KEYWORD':
                     type = self.tokenizer.keyWord()
-                    self.xmlLines.append('<keyword> ' + type + ' </keyword>')
                 elif tokenType == 'IDENTIFIER':
                     type = self.tokenizer.identifier()
-                    self.xmlLines.append('<identifier>')
-                    self.xmlLines.append('<using>')
-                    self.xmlLines.append('<identifierName> ' + type + ' </identifierName>')
-                    self.xmlLines.append('</using>')
-                    self.xmlLines.append('</identifier>')
 
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
@@ -307,15 +247,8 @@ class CompilationEngine:
                         # Update symbol table, get category and running index
                         self.symbolTable.define(varName, type, kind)
                         
-                        self.xmlLines.append('<identifier>')
-                        self.xmlLines.append('<defining>')
 
-                        self.xmlLines.append('<identifierName> ' + varName + ' </identifierName>')
-                        self.xmlLines.append('<category> ' + kind + ' </category>')
-                        self.xmlLines.append('<index> ' + str(self.symbolTable.IndexOf(varName)) + ' </index>')
                         
-                        self.xmlLines.append('</defining>')
-                        self.xmlLines.append('</identifier>')
                     else:
                         raise RuntimeError('Identifier expected')
                 else:
@@ -328,7 +261,7 @@ class CompilationEngine:
                 if token == ')':
                     break
                 elif token == ',':
-                    self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                    pass
             else:
                 raise RuntimeError('Keyword, identifier or symbol expected')
 
@@ -336,16 +269,13 @@ class CompilationEngine:
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
 
-        self.xmlLines.append('</parameterList>')
 
     """
     compileSubroutineBody: Compiles a subroutine's body
     """
     def compileSubroutineBody(self):
-        self.xmlLines.append('<subroutineBody>')
 
         # Get opening curly bracket
-        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
 
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
@@ -371,15 +301,12 @@ class CompilationEngine:
             raise RuntimeError('Keyword expected in compileSubroutineBody')
 
         # Get closing curly bracket
-        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         
-        self.xmlLines.append('</subroutineBody>')
 
     """
     compileStatements: Compiles a sequence of statements. Does not handle the enclosing "{}"
     """
     def compileStatements(self):
-        self.xmlLines.append('<statements>')
         
         while self.tokenizer.tokenType() == 'KEYWORD':
             token = self.tokenizer.keyWord()
@@ -399,7 +326,6 @@ class CompilationEngine:
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
             
-        self.xmlLines.append('</statements>')
 
 
     """
@@ -414,27 +340,18 @@ class CompilationEngine:
         
         while self.tokenizer.keyWord() == 'var':
 
-            self.xmlLines.append('<varDec>')
             
             # Get var keyword
-            self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
             # Get primitive type keyword or class identifier
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
                 if self.tokenizer.tokenType() == 'KEYWORD':
                     type = self.tokenizer.keyWord()
-                    self.xmlLines.append('<keyword> ' + type + ' </keyword>')
                 elif self.tokenizer.tokenType() == 'IDENTIFIER':
                     type = self.tokenizer.keyWord()
-                    self.xmlLines.append('<identifier>')
-                    self.xmlLines.append('<using>')
 
-                    self.xmlLines.append('<identifierName> ' + type + ' </identifierName>')
-                    self.xmlLines.append('<category> ' + 'className' + ' </category>')
 
-                    self.xmlLines.append('</using>')
-                    self.xmlLines.append('</identifier>')
             else:
                 raise RuntimeError('Unexpected end of input')
             
@@ -448,30 +365,21 @@ class CompilationEngine:
                     # Update symbol table, get category and running index
                     self.symbolTable.define(varName, type, kind)
                     
-                    self.xmlLines.append('<identifier>')
-                    self.xmlLines.append('<defining>')
 
-                    self.xmlLines.append('<identifierName> ' + varName + ' </identifierName>')
-                    self.xmlLines.append('<category> ' + kind + ' </category>')
-                    self.xmlLines.append('<index> ' + str(self.symbolTable.IndexOf(varName)) + ' </index>')
                     
-                    self.xmlLines.append('</defining>')
-                    self.xmlLines.append('</identifier>')
 
                 elif self.tokenizer.tokenType() == 'SYMBOL':
                     token = self.tokenizer.symbol()
                     # End curr type var dec if semicolon reached
                     if token == ';':
-                        self.xmlLines.append('<symbol> ' + token + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
                         break
                     elif token == ',':
-                        self.xmlLines.append('<symbol> ' + token + ' </symbol>')
+                        pass
                 else:
                     raise RuntimeError('Identifier or symbol expected in compileVarDec')
                 
-            self.xmlLines.append('</varDec>')
         
         nVars = self.symbolTable.VarCount('local')
 
@@ -485,7 +393,6 @@ class CompilationEngine:
     compileLet: Compiles a let statement
     """
     def compileLet(self):
-        self.xmlLines.append('<letStatement>')
         
         # Store for VM writer
         currToken = ''
@@ -493,7 +400,6 @@ class CompilationEngine:
         currTokenIdx = ''
 
         # Get let keyword
-        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
         # Get next token
         if self.tokenizer.hasMoreTokens():
@@ -510,15 +416,8 @@ class CompilationEngine:
         else:
             raise RuntimeError('Identifier expected in compileLet')
 
-        self.xmlLines.append('<identifier>')
-        self.xmlLines.append('<using>')
 
-        self.xmlLines.append('<identifierName> ' + currToken + ' </identifierName>')
-        self.xmlLines.append('<category> ' + currTokenKind + ' </category>')
-        self.xmlLines.append('<index> ' + str(currTokenIdx) + ' </index>')
         
-        self.xmlLines.append('</using>')
-        self.xmlLines.append('</identifier>')
         
         isArrayAssignment = False
 
@@ -531,7 +430,6 @@ class CompilationEngine:
         if self.tokenizer.tokenType() == 'SYMBOL':
             nextToken = self.tokenizer.symbol()
             if nextToken == '[':
-                self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
                 
@@ -548,7 +446,6 @@ class CompilationEngine:
 
                 # Get closing square bracket
                 if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ']':
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                 else:
@@ -558,7 +455,7 @@ class CompilationEngine:
     
         # Get assignment operator
         if self.tokenizer.tokenType() == 'SYMBOL':
-            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            pass
         else:
             raise RuntimeError('= expected in compileLet')
         
@@ -567,7 +464,6 @@ class CompilationEngine:
             self.tokenizer.advance()
             self.compileExpression()
             # Get semicolon
-            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
         else:
             raise RuntimeError('Unexpected end of input')
 
@@ -579,22 +475,19 @@ class CompilationEngine:
         else:
             self.vmWriter.writePop(currTokenKind, currTokenIdx)
 
-        self.xmlLines.append('</letStatement>')
 
     """
     compileIf: Compiles an if statement, possibly with a trailing else clause
     """
     def compileIf(self):
-        self.xmlLines.append('<ifStatement>')
 
         # Get if keyword
-        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
         # Get opening parenthesis for if conditional
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'SYMBOL':
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                pass
             else:
                 raise RuntimeError('( expected in compileIf')
         else:
@@ -609,7 +502,7 @@ class CompilationEngine:
         
         # Get closing parenthesis for if conditional
         if self.tokenizer.tokenType() == 'SYMBOL':
-            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            pass
         else:
             raise RuntimeError(') expected')
         
@@ -629,7 +522,7 @@ class CompilationEngine:
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'SYMBOL':
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                pass
             else:
                 raise RuntimeError('{ expected in compileIf')
         else:
@@ -643,7 +536,6 @@ class CompilationEngine:
             raise RuntimeError('Unexpected end of input')
         
         # Get closing curly bracket for if conditional statements
-        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
 
         # Check for else statement
         if self.tokenizer.hasMoreTokens():
@@ -651,7 +543,6 @@ class CompilationEngine:
             # Get else keyword
 
             if self.tokenizer.tokenType() == 'KEYWORD' and self.tokenizer.keyWord() == 'else':
-                self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
                 # LABELS
                 self.vmWriter.writeGoto(label_end)
@@ -662,7 +553,6 @@ class CompilationEngine:
                 
                     # Get opening curly braces for else statement
                     if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == '{':
-                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
 
                         # Get statements for else conditional
                         if self.tokenizer.hasMoreTokens():
@@ -672,7 +562,6 @@ class CompilationEngine:
                         self.vmWriter.writeLabel(label_end)
 
                         # Get closing curly bracket for else conditional statements
-                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
 
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
@@ -683,23 +572,20 @@ class CompilationEngine:
         else:
             raise RuntimeError('Unexpected end of input')
 
-        self.xmlLines.append('</ifStatement>')
 
 
     """
     compileWhile: Compiles a while statement
     """
     def compileWhile(self):
-        self.xmlLines.append('<whileStatement>')
 
         # Get while keyword
-        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
         # Get opening parenthesis for while conditional
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'SYMBOL':
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                pass
             else:
                 raise RuntimeError('( expected in compileWhile')
         else:
@@ -719,7 +605,7 @@ class CompilationEngine:
         
         # Get closing parenthesis for while conditional
         if self.tokenizer.tokenType() == 'SYMBOL':
-            self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+            pass
         else:
             raise RuntimeError(') expected in compileWhile')
 
@@ -730,7 +616,7 @@ class CompilationEngine:
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'SYMBOL':
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                pass
             else:
                 raise RuntimeError('{ expected in compileWhile')
         else:
@@ -742,12 +628,10 @@ class CompilationEngine:
         self.compileStatements()
 
         # Get closing curly bracket for while statements
-        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
 
         self.vmWriter.writeGoto(label_while_start)
         self.vmWriter.writeLabel(label_while_end)
         
-        self.xmlLines.append('</whileStatement>')
 
     """
     compileDo: Compiles a do statement
@@ -756,14 +640,12 @@ class CompilationEngine:
         - m
     """
     def compileDo(self):
-        self.xmlLines.append('<doStatement>')
 
         className = ''
         subroutineName = ''
         nArgs = 0
 
         # Get do keyword
-        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
         # Get subroutine call without using compileTerm
         # subroutineName'('expressionList')'
@@ -785,20 +667,12 @@ class CompilationEngine:
                 if nextToken == '(':
                     subroutineName = currToken
 
-                    self.xmlLines.append('<identifier>')
-                    self.xmlLines.append('<using>')
-                    self.xmlLines.append('<identifierName> ' + currToken + ' </identifierName>')
-                    self.xmlLines.append('<category> ' + 'subroutineName' + ' </category>')
-                    self.xmlLines.append('</using>')
-                    self.xmlLines.append('</identifier>')
 
-                    self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
 
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
                     nArgs += self.compileExpressionList()
                     # Get closing parenthesis of expression list
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
 
@@ -815,14 +689,7 @@ class CompilationEngine:
                     else:
                         className = currToken
 
-                    self.xmlLines.append('<identifier>')
-                    self.xmlLines.append('<using>')
-                    self.xmlLines.append('<identifierName> ' + currToken + ' </identifierName>')
-                    self.xmlLines.append('<category> ' + 'className' + ' </category>')
-                    self.xmlLines.append('</using>')
-                    self.xmlLines.append('</identifier>')
 
-                    self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
 
                     if self.tokenizer.hasMoreTokens():
                         self.tokenizer.advance()
@@ -831,25 +698,17 @@ class CompilationEngine:
                     if self.tokenizer.tokenType() == 'IDENTIFIER':
                         subroutineName = self.tokenizer.identifier()
 
-                        self.xmlLines.append('<identifier>')
-                        self.xmlLines.append('<using>')
-                        self.xmlLines.append('<identifierName> ' + subroutineName + ' </identifierName>')
-                        self.xmlLines.append('<category> ' + 'subroutineName' + ' </category>')
-                        self.xmlLines.append('</using>')
-                        self.xmlLines.append('</identifier>')
 
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
                             if self.tokenizer.tokenType() == 'SYMBOL':
                                 token = self.tokenizer.symbol()
                                 if token == '(':
-                                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                                     if self.tokenizer.hasMoreTokens():
                                         self.tokenizer.advance()
                                     nArgs += self.compileExpressionList()
 
                                     # Get closing parenthesis of expression list
-                                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                                     if self.tokenizer.hasMoreTokens():
                                         self.tokenizer.advance()
         else:
@@ -858,7 +717,6 @@ class CompilationEngine:
         # Get semicolon
         if self.tokenizer.tokenType() == 'SYMBOL':
             token = self.tokenizer.symbol()
-            self.xmlLines.append('<symbol> ' + token + ' </symbol>')
 
         functionName = ''
 
@@ -875,28 +733,25 @@ class CompilationEngine:
         self.vmWriter.writeCall(functionName, nArgs)
         self.vmWriter.writePop('temp', 0)   # Discard default returned 0
 
-        self.xmlLines.append('</doStatement>')
 
 
     """
     compileReturn: Compiles a return statement
     """
     def compileReturn(self, isVoid):
-        self.xmlLines.append('<returnStatement>')
 
         # Get return keyword
-        self.xmlLines.append('<keyword> ' + self.tokenizer.keyWord() + ' </keyword>')
 
         # Get expression or colon
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
             if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ';':
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                pass
             else:
                 self.compileExpression()
                 # Get semicolon
                 if self.tokenizer.tokenType() == 'SYMBOL':
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                    pass
                 else:
                     raise RuntimeError('; expected in compileReturn')
         else:
@@ -907,13 +762,11 @@ class CompilationEngine:
 
         self.vmWriter.writeReturn()
 
-        self.xmlLines.append('</returnStatement>')
 
     """
     compileExpression: Compiles an expression -- term (op term)*
     """
     def compileExpression(self):
-        self.xmlLines.append('<expression>')
         
         self.compileTerm()
 
@@ -929,31 +782,22 @@ class CompilationEngine:
                 # Get operators / symbols
                 if token == '<':
                     operator = 'LT'
-                    self.xmlLines.append('<symbol> ' + '&lt;' + ' </symbol>')
                 elif token == '>':
                     operator = 'GT'
-                    self.xmlLines.append('<symbol> ' + '&gt;' + ' </symbol>')
                 elif token == '&':
                     operator = 'AND'
-                    self.xmlLines.append('<symbol> ' + '&amp;' + ' </symbol>')
                 elif token == '|':
                     operator = 'OR'
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                 elif token == '+':
                     operator = 'ADD'
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                 elif token == '-':
                     operator = 'SUB'
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                 elif token == '=':
                     operator = 'EQ'
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                 elif token == '*':
                     operator = 'MULTIPLY'
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                 elif token == '/':
                     operator = 'DIVIDE'
-                    self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                 else:
                     raise RuntimeError(f'Invalid expression operator: {token}')
 
@@ -974,7 +818,6 @@ class CompilationEngine:
             else:
                 break
 
-        self.xmlLines.append('</expression>')
 
     """
     compileTerm: Compiles a term
@@ -1033,9 +876,6 @@ class CompilationEngine:
                     
                     # Array index
                     if nextToken == '[':
-                        self.xmlLines.append('<term>')
-                        self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
-                        self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
 
@@ -1045,7 +885,6 @@ class CompilationEngine:
                         self.vmWriter.writePush(currTokenKind, currTokenIdx)
 
                         self.compileExpression()
-                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
 
@@ -1062,14 +901,10 @@ class CompilationEngine:
                         self.vmWriter.writePush('pointer', 0)
                         nArgs = 1
 
-                        self.xmlLines.append('<term>')
-                        self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
-                        self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
                             nArgs += self.compileExpressionList()
                         # Get closing parenthesis of expression list
-                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
                         
@@ -1093,16 +928,12 @@ class CompilationEngine:
                         else:
                             className = currToken
 
-                        self.xmlLines.append('<term>')
-                        self.xmlLines.append('<identifier> ' + currToken + ' </identifier>')
-                        self.xmlLines.append('<symbol> ' + nextToken + ' </symbol>')
 
                         # Get subroutine name
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
                             if self.tokenizer.tokenType() == 'IDENTIFIER':
                                 subroutineName = self.tokenizer.identifier()
-                                self.xmlLines.append('<identifier> ' + subroutineName + ' </identifier>')
                             else:
                                 raise RuntimeError('subroutineName expected in compileTerm')
                         else:
@@ -1112,7 +943,7 @@ class CompilationEngine:
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
                             if self.tokenizer.tokenType() == 'SYMBOL':
-                                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
+                                pass
                             else:
                                 raise RuntimeError('( expected in compileTerm')
                         else:
@@ -1123,7 +954,6 @@ class CompilationEngine:
                         nArgs += self.compileExpressionList()
 
                         # Get closing parenthesis of expression list
-                        self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
                         
@@ -1135,38 +965,21 @@ class CompilationEngine:
                         currTokenIdx = self.symbolTable.IndexOf(currToken)
                         self.vmWriter.writePush(currTokenKind, currTokenIdx)
 
-                        self.xmlLines.append('<term>')
-                        self.xmlLines.append('<identifier>')
-                        self.xmlLines.append('<using>')
 
-                        self.xmlLines.append('<identifierName> ' + currToken + ' </identifierName>')
-                        self.xmlLines.append('<category> ' + currTokenKind + ' </category>')
-                        self.xmlLines.append('<index> ' + str(currTokenIdx) + ' </index>')
 
-                        self.xmlLines.append('</using>')
-                        self.xmlLines.append('</identifier>')
 
                 # # Regular identifier term ? is this necessary? should ONLY expect symbol after identifier term anyways.
                 # else:
-                #     self.xmlLines.append('<term>')
+                    pass
 
-                #     self.xmlLines.append('<identifier>')
-                #     self.xmlLines.append('<using>')
 
-                #     self.xmlLines.append('<identifierName> ' + currToken + ' </identifierName>')
-                #     self.xmlLines.append('<category> ' + currTokenKind + ' </category>')
-                #     self.xmlLines.append('<index> ' + currTokenIdx + ' </index>')
 
-                #     self.xmlLines.append('</using>')
-                #     self.xmlLines.append('</identifier>')
 
 
         elif tokenType == 'INT_CONST':
             intValToken = self.tokenizer.intVal()
             self.vmWriter.writePush('constant', int(intValToken))
 
-            self.xmlLines.append('<term>')
-            self.xmlLines.append('<integerConstant> ' + intValToken + ' </integerConstant>')
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
             
@@ -1180,22 +993,17 @@ class CompilationEngine:
                 self.vmWriter.writePush('constant', ord(c))
                 self.vmWriter.writeCall('String.appendChar', 2)
 
-            self.xmlLines.append('<term>')
-            self.xmlLines.append('<stringConstant> ' + self.tokenizer.stringVal() + ' </stringConstant>')
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
 
         # '('expression')' or unary operator
         elif tokenType == 'SYMBOL':
-            self.xmlLines.append('<term>')
             token = self.tokenizer.symbol()
-            self.xmlLines.append('<symbol> ' + token + ' </symbol>')
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
             if token == '(':
                 self.compileExpression()
                 # Get closing parenthesis
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
             elif token == '~':
@@ -1217,12 +1025,9 @@ class CompilationEngine:
                 case 'this':
                     self.vmWriter.writePush('pointer', 0)
 
-            self.xmlLines.append('<term>')
-            self.xmlLines.append('<keyword> ' + token + ' </keyword>')
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
 
-        self.xmlLines.append('</term>')
 
 
     """
@@ -1232,18 +1037,15 @@ class CompilationEngine:
 
         count = 0
 
-        self.xmlLines.append('<expressionList>')
 
         # Empty expression list
         if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ')':
-            self.xmlLines.append('</expressionList>')
             return 0
         
         else: 
             self.compileExpression()
             count += 1
             while self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ',':
-                self.xmlLines.append('<symbol> ' + self.tokenizer.symbol() + ' </symbol>')
                 if self.tokenizer.hasMoreTokens():
                     self.tokenizer.advance()
                 self.compileExpression()
@@ -1251,6 +1053,5 @@ class CompilationEngine:
                 if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ')':
                     break
                 
-        self.xmlLines.append('</expressionList>')
 
         return count
