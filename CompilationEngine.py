@@ -520,6 +520,8 @@ class CompilationEngine:
         self.xmlLines.append('</using>')
         self.xmlLines.append('</identifier>')
         
+        isArrayAssignment = False
+
         # Get next token, either assignment operator or opening square bracket for array index
         if self.tokenizer.hasMoreTokens():
             self.tokenizer.advance()
@@ -535,14 +537,14 @@ class CompilationEngine:
                 
                 # Push array base addr to stack
                 self.vmWriter.writePush(currTokenKind, currTokenIdx)
+
+                # Compile expression for array index
                 self.compileExpression()
 
-                # Add the offset of index to the base address and set to THAT
+                # Compute target address. Keep it on stack until RHS is compiled,
+                # then assign via THAT using temp/pointer sequence.
                 self.vmWriter.writeArithmetic('ADD')
-                self.vmWriter.writePop('pointer', 1)
-
-                currTokenKind = 'that'
-                currTokenIdx = 0
+                isArrayAssignment = True
 
                 # Get closing square bracket
                 if self.tokenizer.tokenType() == 'SYMBOL' and self.tokenizer.symbol() == ']':
@@ -569,7 +571,13 @@ class CompilationEngine:
         else:
             raise RuntimeError('Unexpected end of input')
 
-        self.vmWriter.writePop(currTokenKind, currTokenIdx)
+        if isArrayAssignment:
+            self.vmWriter.writePop('temp', 0)
+            self.vmWriter.writePop('pointer', 1)
+            self.vmWriter.writePush('temp', 0)
+            self.vmWriter.writePop('that', 0)
+        else:
+            self.vmWriter.writePop(currTokenKind, currTokenIdx)
 
         self.xmlLines.append('</letStatement>')
 
@@ -776,9 +784,6 @@ class CompilationEngine:
                 # currToken is subroutine name
                 if nextToken == '(':
                     subroutineName = currToken
-                    # Unqualified subroutine call in current class: push this first.
-                    self.vmWriter.writePush('pointer', 0)
-                    nArgs += 1
 
                     self.xmlLines.append('<identifier>')
                     self.xmlLines.append('<using>')
@@ -863,6 +868,8 @@ class CompilationEngine:
 
         # Method call on current class
         else:
+            self.vmWriter.writePush('pointer', 0)
+            nArgs += 1
             functionName = self.className + '.' + subroutineName
         
         self.vmWriter.writeCall(functionName, nArgs)
@@ -1066,7 +1073,7 @@ class CompilationEngine:
                         if self.tokenizer.hasMoreTokens():
                             self.tokenizer.advance()
                         
-                        self.vmWriter.writeCall(f'{self.className}.{currToken}', nArgs)
+                        self.vmWriter.writeCall(currToken, nArgs)
 
                     # METHOD OR FUNCTION OF OTHER CLASS
                     # subroutineName'('expressionList')'
