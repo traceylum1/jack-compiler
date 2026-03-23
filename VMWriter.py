@@ -42,25 +42,24 @@ class VMWriter:
         - command: ADD, SUB, NEG, EQ, GT, LT, AND, OR, NOT
     """
     def writeArithmetic(self, command: str) -> None:
-        match command:
-            case 'LT':
-                self.vmCode.append('lt')
-            case 'GT':
-                self.vmCode.append('gt')
-            case 'AND':
-                self.vmCode.append('and')
-            case 'OR':
-                self.vmCode.append('or')
-            case 'ADD':
-                self.vmCode.append('add')
-            case 'SUB':
-                self.vmCode.append('sub')
-            case 'EQ':
-                self.vmCode.append('eq')
-            case 'NEG':
-                self.vmCode.append('neg')
-            case 'NOT':
-                self.vmCode.append('not')
+        if command == 'LT':
+            self.vmCode.append('lt')
+        elif command == 'GT':
+            self.vmCode.append('gt')
+        elif command == 'AND':
+            self.vmCode.append('and')
+        elif command == 'OR':
+            self.vmCode.append('or')
+        elif command == 'ADD':
+            self.vmCode.append('add')
+        elif command == 'SUB':
+            self.vmCode.append('sub')
+        elif command == 'EQ':
+            self.vmCode.append('eq')
+        elif command == 'NEG':
+            self.vmCode.append('neg')
+        elif command == 'NOT':
+            self.vmCode.append('not')
 
 
     """

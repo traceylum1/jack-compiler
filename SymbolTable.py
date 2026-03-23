@@ -49,15 +49,14 @@ class SymbolTable:
             kind (static, field, argument, or local)
     """
     def define(self, name: str, type: str, kind: str) -> None:
-        match kind:
-            case 'static' | 'field':
-                if name in self.classScope:
-                    raise RuntimeError(f'Class variable already defined - {name}')
-                self.classScope[name] = {'type': type, 'kind': kind, 'index': self.VarCount(kind)}
-            case 'argument' | 'local':
-                if name in self.subroutineScope:
-                    raise RuntimeError(f'Subroutine variable already defined - {name}')
-                self.subroutineScope[name] = {'type': type, 'kind': kind, 'index': self.VarCount(kind)}
+        if kind in ('static', 'field'):
+            if name in self.classScope:
+                raise RuntimeError(f'Class variable already defined - {name}')
+            self.classScope[name] = {'type': type, 'kind': kind, 'index': self.VarCount(kind)}
+        elif kind in ('argument', 'local'):
+            if name in self.subroutineScope:
+                raise RuntimeError(f'Subroutine variable already defined - {name}')
+            self.subroutineScope[name] = {'type': type, 'kind': kind, 'index': self.VarCount(kind)}
 
         self.indices[kind] += 1
 

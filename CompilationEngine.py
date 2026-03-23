@@ -808,13 +808,12 @@ class CompilationEngine:
 
                 self.compileTerm()
 
-                match operator:
-                    case 'MULTIPLY':
-                        self.vmWriter.writeCall('Math.multiply', 2) # Call Math.multiply
-                    case 'DIVIDE':
-                        self.vmWriter.writeCall('Math.divide', 2) # Call Math.divide
-                    case _:
-                        self.vmWriter.writeArithmetic(operator)
+                if operator == 'MULTIPLY':
+                    self.vmWriter.writeCall('Math.multiply', 2) # Call Math.multiply
+                elif operator == 'DIVIDE':
+                    self.vmWriter.writeCall('Math.divide', 2) # Call Math.divide
+                else:
+                    self.vmWriter.writeArithmetic(operator)
             else:
                 break
 
@@ -1016,14 +1015,13 @@ class CompilationEngine:
         # true, false, null, etc.
         elif tokenType == 'KEYWORD':
             token = self.tokenizer.keyWord()
-            match token:
-                case 'true':
-                    self.vmWriter.writePush('constant', 1)
-                    self.vmWriter.writeArithmetic('NEG')
-                case 'false' | 'null':
-                    self.vmWriter.writePush('constant', 0)
-                case 'this':
-                    self.vmWriter.writePush('pointer', 0)
+            if token == 'true':
+                self.vmWriter.writePush('constant', 1)
+                self.vmWriter.writeArithmetic('NEG')
+            elif token in ('false', 'null'):
+                self.vmWriter.writePush('constant', 0)
+            elif token == 'this':
+                self.vmWriter.writePush('pointer', 0)
 
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
